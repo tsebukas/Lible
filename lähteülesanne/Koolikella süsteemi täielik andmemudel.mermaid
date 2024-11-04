@@ -1,0 +1,57 @@
+erDiagram
+    User ||--o{ Timetable : maintains
+    User {
+        integer id PK
+        string username
+        string password_hash "Ainult lokaalse autentimise puhul"
+        boolean is_local_auth
+        string language
+    }
+
+    Timetable ||--o{ TimetableEvent : contains
+    Timetable {
+        integer id PK
+        string name
+        date valid_from
+        date valid_until
+        integer weekdays "bitmask"
+    }
+
+    EventTemplate ||--o{ EventTemplateItem : defines
+    EventTemplate {
+        integer id PK
+        string name
+        string description
+    }
+
+    EventTemplateItem {
+        integer id PK
+        integer template_id FK
+        integer offset_minutes
+        string event_name
+        integer sound_id FK
+    }
+
+    TimetableEvent ||--o| Sound : uses
+    TimetableEvent ||--o| EventTemplate : based_on
+    TimetableEvent {
+        integer id PK
+        integer timetable_id FK
+        string event_name
+        time event_time
+        integer sound_id FK
+        integer template_instance_id "NULL kui pole mallist"
+        boolean is_template_base "True kui on malli põhisündmus"
+    }
+
+    Sound {
+        integer id PK
+        string name
+        string filename
+    }
+
+    Holiday {
+        integer id PK
+        date valid_from
+        date valid_until
+    }
