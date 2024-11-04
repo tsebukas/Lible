@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LoginForm from './components/LoginForm';
 import CalendarView from './components/CalendarView';
+import SoundsView from './components/SoundsView';
 
 // Kaitseb marsruute, mis nõuavad autentimist
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -85,6 +86,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <div>Mallid (tulekul)</div>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sounds"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SoundsView />
                 </Layout>
               </ProtectedRoute>
             }

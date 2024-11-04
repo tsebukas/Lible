@@ -6,7 +6,7 @@ const API_URL = 'http://localhost:8000';
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Type': 'application/json',
   },
 });
 
@@ -97,9 +97,17 @@ export const sounds = {
     return response.data;
   },
 
-  async create(data: Omit<Sound, 'id'>): Promise<Sound> {
-    const response = await api.post<Sound>('/sounds', data);
+  async upload(formData: FormData): Promise<Sound> {
+    const response = await api.post<Sound>('/sounds', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
+  },
+
+  async delete(id: number): Promise<void> {
+    await api.delete(`/sounds/${id}`);
   }
 };
 

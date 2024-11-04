@@ -1,1 +1,5 @@
 backend/venv
+backend/schoolbell.db
+backend/sounds
+
+backend/app/__pycache__

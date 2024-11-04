@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Clock, Bell, Settings, LogOut } from 'lucide-react';
+import { Calendar, Clock, Bell, Settings, LogOut, Music } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo';
 
@@ -49,6 +49,13 @@ const Layout = ({ children }: LayoutProps) => {
                 >
                   <Bell className="w-5 h-5 mr-1.5" />
                   Mallid
+                </Link>
+                <Link
+                  to="/sounds"
+                  className={`nav-link ${isActivePath('/sounds') ? 'nav-link-active' : ''}`}
+                >
+                  <Music className="w-5 h-5 mr-1.5" />
+                  Helinad
                 </Link>
                 <Link
                   to="/holidays"

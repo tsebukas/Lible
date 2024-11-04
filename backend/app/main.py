@@ -1,8 +1,10 @@
 from datetime import timedelta
 from typing import List
-from fastapi import FastAPI, Depends, HTTPException, status
+import os
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from . import models, schemas, security
 from .database import engine, get_db
@@ -19,12 +21,40 @@ app = FastAPI(
 # CORS seadistus
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend URL
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# Helinate kausta seadistamine
+SOUNDS_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sounds"))
+if not os.path.exists(SOUNDS_DIRECTORY):
+    os.makedirs(SOUNDS_DIRECTORY)
+    print(f"Created sounds directory at: {SOUNDS_DIRECTORY}")  # Debug log
+
+# Helinate serveerimine ID järgi
+@app.get("/sounds/{sound_id}")
+def get_sound_file(
+    sound_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    sound = db.query(models.Sound).filter(models.Sound.id == sound_id).first()
+    if not sound:
+        raise HTTPException(status_code=404, detail="Helin ei leitud")
+    
+    file_path = os.path.join(SOUNDS_DIRECTORY, sound.filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Helifail ei leitud")
+    
+    return FileResponse(file_path, media_type="audio/mpeg")
 
 # Autentimine
 @app.post("/token", response_model=schemas.Token)
@@ -51,6 +81,80 @@ async def read_users_me(
     current_user: models.User = Depends(security.get_current_user)
 ):
     return current_user
+
+# Helinate haldus
+@app.get("/sounds", response_model=List[schemas.Sound])
+def get_sounds(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    return db.query(models.Sound).all()
+
+@app.post("/sounds", response_model=schemas.Sound)
+async def create_sound(
+    sound_file: UploadFile = File(...),
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    print(f"Receiving sound upload: name={name}, file={sound_file.filename}")  # Debug log
+    
+    # Kontrolli failitüüpi
+    if not sound_file.content_type.startswith("audio/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Ainult helifailid on lubatud"
+        )
+    
+    # Kontrolli faili suurust (max 2MB)
+    MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
+    contents = await sound_file.read()
+    file_size = len(contents)
+    
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="Fail on liiga suur (max 2MB)"
+        )
+    
+    # Salvesta fail
+    filename = f"{name}_{sound_file.filename}"
+    file_path = os.path.join(SOUNDS_DIRECTORY, filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    
+    print(f"Sound file saved to: {file_path}")  # Debug log
+    
+    # Salvesta andmebaasi
+    db_sound = models.Sound(name=name, filename=filename)
+    db.add(db_sound)
+    db.commit()
+    db.refresh(db_sound)
+    
+    print(f"Sound record created: {db_sound.id}")  # Debug log
+    return db_sound
+
+@app.delete("/sounds/{sound_id}")
+def delete_sound(
+    sound_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    sound = db.query(models.Sound).filter(models.Sound.id == sound_id).first()
+    if not sound:
+        raise HTTPException(status_code=404, detail="Helin ei leitud")
+    
+    # Kustuta fail
+    file_path = os.path.join(SOUNDS_DIRECTORY, sound.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Kustuta andmebaasist
+    db.delete(sound)
+    db.commit()
+    
+    return {"message": "Helin kustutatud"}
 
 # Tunniplaanid
 @app.get("/timetables", response_model=List[schemas.Timetable])
@@ -117,26 +221,6 @@ def create_template(
     
     db.commit()
     return db_template
-
-# Helinad
-@app.get("/sounds", response_model=List[schemas.Sound])
-def get_sounds(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    return db.query(models.Sound).all()
-
-@app.post("/sounds", response_model=schemas.Sound)
-def create_sound(
-    sound: schemas.SoundCreate,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    db_sound = models.Sound(**sound.model_dump())
-    db.add(db_sound)
-    db.commit()
-    db.refresh(db_sound)
-    return db_sound
 
 # Pühad
 @app.get("/holidays", response_model=List[schemas.Holiday])
