@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from . import models, schemas, security
 from .database import engine, get_db
 
@@ -170,6 +171,16 @@ def create_timetable(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
+    # Kontrolli, kas sama nimega tunniplaan juba eksisteerib
+    existing = db.query(models.Timetable).filter(
+        models.Timetable.name == timetable.name
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Sama nimega tunniplaan on juba olemas"
+        )
+
     db_timetable = models.Timetable(**timetable.model_dump(), user_id=current_user.id)
     db.add(db_timetable)
     db.commit()
@@ -187,8 +198,57 @@ def get_timetable(
         models.Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
-        raise HTTPException(status_code=404, detail="Timetable not found")
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
     return timetable
+
+@app.put("/timetables/{timetable_id}", response_model=schemas.Timetable)
+def update_timetable(
+    timetable_id: int,
+    timetable: schemas.TimetableCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    db_timetable = db.query(models.Timetable).filter(
+        models.Timetable.id == timetable_id,
+        models.Timetable.user_id == current_user.id
+    ).first()
+    if db_timetable is None:
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
+    
+    # Kontrolli, kas sama nimega tunniplaan juba eksisteerib (välja arvatud praegune)
+    existing = db.query(models.Timetable).filter(
+        models.Timetable.name == timetable.name,
+        models.Timetable.id != timetable_id
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Sama nimega tunniplaan on juba olemas"
+        )
+    
+    for key, value in timetable.model_dump().items():
+        setattr(db_timetable, key, value)
+    
+    db.commit()
+    db.refresh(db_timetable)
+    return db_timetable
+
+@app.delete("/timetables/{timetable_id}")
+def delete_timetable(
+    timetable_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    timetable = db.query(models.Timetable).filter(
+        models.Timetable.id == timetable_id,
+        models.Timetable.user_id == current_user.id
+    ).first()
+    if timetable is None:
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
+    
+    db.delete(timetable)
+    db.commit()
+    return {"message": "Tunniplaan kustutatud"}
 
 # Mallid
 @app.get("/templates", response_model=List[schemas.EventTemplate])
@@ -254,7 +314,7 @@ def get_timetable_events(
         models.Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
-        raise HTTPException(status_code=404, detail="Timetable not found")
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
     return timetable.events
 
 @app.post("/timetables/{timetable_id}/events", response_model=schemas.TimetableEvent)
@@ -269,10 +329,68 @@ def create_timetable_event(
         models.Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
-        raise HTTPException(status_code=404, detail="Timetable not found")
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
     
     db_event = models.TimetableEvent(**event.model_dump(), timetable_id=timetable_id)
     db.add(db_event)
     db.commit()
     db.refresh(db_event)
     return db_event
+
+@app.put("/timetables/{timetable_id}/events/{event_id}", response_model=schemas.TimetableEvent)
+def update_timetable_event(
+    timetable_id: int,
+    event_id: int,
+    event: schemas.TimetableEventCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    # Kontrolli, kas tunniplaan kuulub kasutajale
+    timetable = db.query(models.Timetable).filter(
+        models.Timetable.id == timetable_id,
+        models.Timetable.user_id == current_user.id
+    ).first()
+    if timetable is None:
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
+    
+    # Kontrolli, kas sündmus kuulub sellele tunniplaanile
+    db_event = db.query(models.TimetableEvent).filter(
+        models.TimetableEvent.id == event_id,
+        models.TimetableEvent.timetable_id == timetable_id
+    ).first()
+    if db_event is None:
+        raise HTTPException(status_code=404, detail="Sündmus ei leitud")
+    
+    for key, value in event.model_dump().items():
+        setattr(db_event, key, value)
+    
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@app.delete("/timetables/{timetable_id}/events/{event_id}")
+def delete_timetable_event(
+    timetable_id: int,
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    # Kontrolli, kas tunniplaan kuulub kasutajale
+    timetable = db.query(models.Timetable).filter(
+        models.Timetable.id == timetable_id,
+        models.Timetable.user_id == current_user.id
+    ).first()
+    if timetable is None:
+        raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
+    
+    # Kontrolli, kas sündmus kuulub sellele tunniplaanile
+    event = db.query(models.TimetableEvent).filter(
+        models.TimetableEvent.id == event_id,
+        models.TimetableEvent.timetable_id == timetable_id
+    ).first()
+    if event is None:
+        raise HTTPException(status_code=404, detail="Sündmus ei leitud")
+    
+    db.delete(event)
+    db.commit()
+    return {"message": "Sündmus kustutatud"}

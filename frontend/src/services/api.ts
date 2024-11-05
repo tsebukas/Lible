@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AuthResponse, User, Timetable, EventTemplate, Sound, Holiday } from '../types/api';
+import { AuthResponse, User, Timetable, EventTemplate, Sound, Holiday, TimetableEvent } from '../types/api';
 
 const API_URL = 'http://localhost:8000';
 
@@ -74,6 +74,34 @@ export const timetables = {
   async create(data: Omit<Timetable, 'id' | 'user_id'>): Promise<Timetable> {
     const response = await api.post<Timetable>('/timetables', data);
     return response.data;
+  },
+
+  async update(id: number, data: Omit<Timetable, 'id' | 'user_id'>): Promise<Timetable> {
+    const response = await api.put<Timetable>(`/timetables/${id}`, data);
+    return response.data;
+  },
+
+  async delete(id: number): Promise<void> {
+    await api.delete(`/timetables/${id}`);
+  },
+
+  async getEvents(id: number): Promise<TimetableEvent[]> {
+    const response = await api.get<TimetableEvent[]>(`/timetables/${id}/events`);
+    return response.data;
+  },
+
+  async createEvent(id: number, data: Omit<TimetableEvent, 'id' | 'timetable_id'>): Promise<TimetableEvent> {
+    const response = await api.post<TimetableEvent>(`/timetables/${id}/events`, data);
+    return response.data;
+  },
+
+  async updateEvent(timetableId: number, eventId: number, data: Omit<TimetableEvent, 'id' | 'timetable_id'>): Promise<TimetableEvent> {
+    const response = await api.put<TimetableEvent>(`/timetables/${timetableId}/events/${eventId}`, data);
+    return response.data;
+  },
+
+  async deleteEvent(timetableId: number, eventId: number): Promise<void> {
+    await api.delete(`/timetables/${timetableId}/events/${eventId}`);
   }
 };
 

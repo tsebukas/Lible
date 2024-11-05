@@ -1,0 +1,41 @@
+TEHTUD:
+1. Arenduskeskkonna seadistamine
+   - Frontend (React + TypeScript + Tailwind CSS)
+   - Backend (FastAPI + SQLite)
+   - Autentimine (JWT)
+   - Andmebaasi struktuur
+
+2. Põhikomponendid
+   - Layout ja navigatsioon
+   - Sisselogimise vorm
+   - Helinate haldus (üleslaadimine, kustutamine, mängimine)
+
+JÄRGMISED SAMMUD (prioriteedi järjekorras):
+
+1. Tunniplaanide haldus
+   - Tunniplaani loomine (nimi, kehtivusaeg, nädalapäevad)
+   - Tunniplaani sündmuste lisamine
+   - Mallide kasutamine sündmuste lisamisel
+   - Tunniplaanide nimekiri ja detailvaade
+
+2. Mallide haldus
+   - Malli loomine
+   - Malli sündmuste ajastamine
+   - Mallide nimekiri ja muutmine
+
+3. Pühade/vaheaegade haldus
+   - Pühade lisamine
+   - Pühade nimekiri ja muutmine
+   - Pühade arvestamine tunniplaanides
+
+4. Kellade automaatne helistamine
+   - Taustateenus kellade helistamiseks
+   - Helinate mängimine õigel ajal
+   - Logide pidamine
+
+5. Täiendavad funktsioonid
+   - Kasutaja keele-eelistused
+   - Tunniplaanide import/eksport
+
+
+Soovituslik järgmine samm oleks tunniplaanide halduse arendamine, kuna see on süsteemi põhifunktsioon ja nüüd on olemas vajalik helinate tugi.

@@ -4,11 +4,13 @@ import Layout from './components/Layout';
 import LoginForm from './components/LoginForm';
 import CalendarView from './components/CalendarView';
 import SoundsView from './components/SoundsView';
+import TimetablesView from './components/TimetablesView';
+import TimetableForm from './components/TimetableForm';
+import TimetableDetailView from './components/TimetableDetailView';
 
 // Kaitseb marsruute, mis nõuavad autentimist
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { user, isLoading } = useAuth();
-  console.log('ProtectedRoute - user:', user, 'isLoading:', isLoading);  // Debug log
 
   if (isLoading) {
     return (
@@ -19,7 +21,6 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
   }
 
   if (!user) {
-    console.log('ProtectedRoute - redirecting to login');  // Debug log
     return <Navigate to="/login" replace />;
   }
 
@@ -29,7 +30,6 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 // Suunab autenditud kasutaja avalehele
 function PublicRoute({ children }: { children: JSX.Element }) {
   const { user, isLoading } = useAuth();
-  console.log('PublicRoute - user:', user, 'isLoading:', isLoading);  // Debug log
 
   if (isLoading) {
     return (
@@ -40,7 +40,6 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   }
 
   if (user) {
-    console.log('PublicRoute - redirecting to home');  // Debug log
     return <Navigate to="/" replace />;
   }
 
@@ -75,7 +74,27 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <div>Tunniplaanid (tulekul)</div>
+                  <TimetablesView />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetables/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TimetableForm />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetables/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TimetableDetailView />
                 </Layout>
               </ProtectedRoute>
             }
