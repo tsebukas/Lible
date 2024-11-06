@@ -95,6 +95,20 @@ export interface EventTemplateItem {
   sound_id: number;
 }
 
+// Pühade tüübid
+export interface Holiday {
+  id: number;
+  name: string;
+  valid_from: string;
+  valid_until: string;
+}
+
+export interface CreateHolidayInput {
+  name: string;
+  valid_from: string;
+  valid_until: string;
+}
+
 // Auth API
 export const auth = {
   login: async (data: LoginRequest) => {
@@ -164,6 +178,59 @@ export const templates = {
       headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to delete template');
+  }
+};
+
+// Holidays API
+export const holidays = {
+  getAll: async (): Promise<Holiday[]> => {
+    const response = await fetch(`${API_URL}/holidays`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch holidays');
+    return response.json();
+  },
+
+  getById: async (id: number): Promise<Holiday> => {
+    const response = await fetch(`${API_URL}/holidays/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch holiday');
+    return response.json();
+  },
+
+  create: async (data: CreateHolidayInput): Promise<Holiday> => {
+    const response = await fetch(`${API_URL}/holidays`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create holiday');
+    return response.json();
+  },
+
+  update: async (id: number, data: CreateHolidayInput): Promise<Holiday> => {
+    const response = await fetch(`${API_URL}/holidays/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update holiday');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/holidays/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete holiday');
   }
 };
 

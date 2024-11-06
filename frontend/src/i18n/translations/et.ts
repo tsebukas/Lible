@@ -37,7 +37,8 @@ export const et = {
     calendar: 'Kalender',
     timetables: 'Tunniplaanid',
     templates: 'Mallid',
-    sounds: 'Helinad'
+    sounds: 'Helinad',
+    holidays: 'Pühad ja vaheajad'
   },
   auth: {
     login: 'Logi sisse',
@@ -52,6 +53,23 @@ export const et = {
     sessionExpired: 'Seanss on aegunud, palun logi uuesti sisse',
     sessionExpiring: 'Seanss aegub peagi, palun logi uuesti sisse',
     invalidCredentials: 'Vale kasutajanimi või parool'
+  },
+  holiday: {
+    title: 'Pühad ja vaheajad',
+    new: 'Lisa püha või vaheaeg',
+    edit: 'Muuda püha või vaheaega',
+    name: 'Nimetus',
+    validFrom: 'Kehtib alates',
+    validUntil: 'Kehtib kuni',
+    noHolidays: 'Ühtegi püha ega vaheaega pole lisatud',
+    creating: 'Lisamine...',
+    saving: 'Salvestamine...',
+    deleting: 'Kustutamine...',
+    createSuccess: 'Püha või vaheaeg on edukalt lisatud',
+    updateSuccess: 'Püha või vaheaeg on edukalt uuendatud',
+    deleteSuccess: 'Püha või vaheaeg on edukalt kustutatud',
+    delete: 'Kustuta püha või vaheaeg',
+    deleteConfirm: 'Kas oled kindel, et soovid selle püha või vaheaja kustutada?'
   },
   timetable: {
     new: 'Uus tunniplaan',

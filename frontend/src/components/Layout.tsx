@@ -21,6 +21,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'nav.timetables', href: '/timetables', icon: Clock },
     { name: 'nav.templates', href: '/templates', icon: FileText },
     { name: 'nav.sounds', href: '/sounds', icon: Bell },
+    { name: 'nav.holidays', href: '/holidays', icon: Calendar },
   ];
 
   // Sulge mobiilimenüü navigeerimisel

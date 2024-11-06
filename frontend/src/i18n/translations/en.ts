@@ -37,7 +37,8 @@ export const en = {
     calendar: 'Calendar',
     timetables: 'Timetables',
     templates: 'Templates',
-    sounds: 'Sounds'
+    sounds: 'Sounds',
+    holidays: 'Holidays'
   },
   auth: {
     login: 'Log in',
@@ -52,6 +53,23 @@ export const en = {
     sessionExpired: 'Session expired, please log in again',
     sessionExpiring: 'Session expiring soon, please log in again',
     invalidCredentials: 'Invalid username or password'
+  },
+  holiday: {
+    title: 'Holidays',
+    new: 'Add Holiday',
+    edit: 'Edit Holiday',
+    name: 'Name',
+    validFrom: 'Valid From',
+    validUntil: 'Valid Until',
+    noHolidays: 'No holidays added',
+    creating: 'Creating holiday...',
+    saving: 'Saving holiday...',
+    deleting: 'Deleting holiday...',
+    createSuccess: 'Holiday successfully created',
+    updateSuccess: 'Holiday successfully updated',
+    deleteSuccess: 'Holiday successfully deleted',
+    delete: 'Delete holiday',
+    deleteConfirm: 'Are you sure you want to delete this holiday?'
   },
   timetable: {
     new: 'New Timetable',

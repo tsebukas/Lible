@@ -72,5 +72,6 @@ class Holiday(Base):
     __tablename__ = "holidays"
 
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)  # Lisatud name väli
     valid_from = Column(Date)
     valid_until = Column(Date)

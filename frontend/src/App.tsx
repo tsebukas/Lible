@@ -10,6 +10,7 @@ import TimetableDetailView from './components/TimetableDetailView';
 import TimetableForm from './components/TimetableForm';
 import SoundsView from './components/SoundsView';
 import TemplatesView from './components/TemplatesView';
+import HolidaysView from './components/HolidaysView';
 
 // Kaitstud marsruudi komponent
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -104,6 +105,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <SoundsView />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/holidays"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <HolidaysView />
             </Layout>
           </ProtectedRoute>
         }

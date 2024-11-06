@@ -5,6 +5,8 @@
   - Põhitabelite ja seoste defineerimine
   - Mallide süsteemi lisamine
   - Kasutajate keelevaliku tugi
+- 2024-03-07: v1.1
+  - Lisatud name väli Holiday tabelisse
 
 ## Ülevaade
 Lible on veebipõhine koolikella süsteem, mis võimaldab hallata ja automaatselt juhtida kellade helistamist vastavalt seadistatud tunniplaanidele. Käesolev dokument kirjeldab süsteemi andmemudelit.
@@ -69,6 +71,7 @@ Lible on veebipõhine koolikella süsteem, mis võimaldab hallata ja automaatsel
 
 ### Holiday (Pühad ja vaheajad)
 - **id**: integer PK
+- **name**: string (Püha või vaheaja nimetus)
 - **valid_from**: date
 - **valid_until**: date
 - Seosed:
