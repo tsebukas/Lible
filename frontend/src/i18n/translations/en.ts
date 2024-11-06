@@ -84,6 +84,7 @@ export const en = {
     deleteSuccess: 'Template successfully deleted',
     delete: 'Delete template',
     deleteConfirm: 'Are you sure you want to delete this template?',
+    nameExists: 'A template with this name already exists',
     items: {
       title: 'Events',
       new: 'Add Event',

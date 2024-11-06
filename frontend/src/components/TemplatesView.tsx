@@ -122,15 +122,20 @@ const TemplatesView = () => {
         variant: 'success',
         duration: appConfig.toast.duration.success
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create error:', error);
+      // Kontrolli kas on unikaalsuse viga
+      const errorMessage = error.response?.data?.detail === 'Sama nimega mall on juba olemas'
+        ? t('template.nameExists')
+        : t('errors.createFailed');
+
       setFormState(prev => ({
         ...prev,
-        error: t('errors.createFailed')
+        error: errorMessage
       }));
       
       toast.updateToast(toastId, {
-        message: t('errors.createFailed'),
+        message: errorMessage,
         variant: 'error',
         duration: appConfig.toast.duration.error
       });
@@ -159,15 +164,20 @@ const TemplatesView = () => {
         variant: 'success',
         duration: appConfig.toast.duration.success
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update error:', error);
+      // Kontrolli kas on unikaalsuse viga
+      const errorMessage = error.response?.data?.detail === 'Sama nimega mall on juba olemas'
+        ? t('template.nameExists')
+        : t('errors.saveFailed');
+
       setFormState(prev => ({
         ...prev,
-        error: t('errors.saveFailed')
+        error: errorMessage
       }));
       
       toast.updateToast(toastId, {
-        message: t('errors.saveFailed'),
+        message: errorMessage,
         variant: 'error',
         duration: appConfig.toast.duration.error
       });

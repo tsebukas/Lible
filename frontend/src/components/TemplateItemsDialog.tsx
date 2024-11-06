@@ -35,12 +35,19 @@ const TemplateItemsDialog = ({
   const { t } = useLanguage();
   const toast = useToast();
   const [selectedItem, setSelectedItem] = useState<number | null>(null);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [formData, setFormData] = useState<ItemFormData>({
     event_name: '',
     offset_minutes: 0,
     sound_id: 0
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Hangi JWT token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem(appConfig.auth.tokenKey);
+    return token ? { 'Authorization': `Bearer ${token}` } : undefined;
+  };
 
   const resetForm = () => {
     setFormData({
@@ -203,6 +210,8 @@ const TemplateItemsDialog = ({
                       variant="ghost"
                       size="sm"
                       url={`${appConfig.api.baseUrl}/sounds/${item.sound_id}`}
+                      headers={getAuthHeaders()}
+                      onPlayStateChange={(isPlaying) => setCurrentlyPlaying(isPlaying ? item.sound_id : null)}
                     />
                     <Button
                       variant="ghost"

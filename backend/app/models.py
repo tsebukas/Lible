@@ -44,7 +44,7 @@ class EventTemplate(Base):
     __tablename__ = "event_templates"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
+    name = Column(String, unique=True, index=True)  # Lisatud unique=True ja index=True
     description = Column(String, nullable=True)
 
     items = relationship("EventTemplateItem", back_populates="template", cascade="all, delete-orphan")

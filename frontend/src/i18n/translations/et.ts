@@ -84,6 +84,7 @@ export const et = {
     deleteSuccess: 'Mall on edukalt kustutatud',
     delete: 'Kustuta mall',
     deleteConfirm: 'Kas oled kindel, et soovid selle malli kustutada?',
+    nameExists: 'Sama nimega mall on juba olemas',
     items: {
       title: 'Sündmused',
       new: 'Lisa sündmus',
