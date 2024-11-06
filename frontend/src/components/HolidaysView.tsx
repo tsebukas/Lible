@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, Trash2, Pencil } from 'lucide-react';
+import { PartyPopper, Plus, Trash2, Pencil } from 'lucide-react';
 import { useLanguage } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
 import Card from './ui/Card';
@@ -214,7 +214,7 @@ const HolidaysView = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-          <Calendar className="w-6 h-6" />
+          <PartyPopper className="w-6 h-6" />
           {t('holiday.title')}
         </h1>
         <Button
@@ -238,7 +238,7 @@ const HolidaysView = () => {
           <Card>
             <Card.Content>
               <div className="text-center py-12">
-                <Calendar className="mx-auto h-12 w-12 text-content-light" />
+                <PartyPopper className="mx-auto h-12 w-12 text-content-light" />
                 <p className="mt-2 text-content-light">
                   {t('holiday.noHolidays')}
                 </p>
@@ -252,7 +252,7 @@ const HolidaysView = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-grow">
                     <div className="flex items-center gap-3">
-                      <Calendar className="h-5 w-5 text-content-light" />
+                      <PartyPopper className="h-5 w-5 text-content-light" />
                       <span className="font-medium">{holiday.name}</span>
                     </div>
                     <div className="mt-2 text-sm text-content-light">

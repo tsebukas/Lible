@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Clock, Bell, Settings, LogOut, Globe, Menu, X, FileText } from 'lucide-react';
+import { Calendar, Clock, Bell, Settings, LogOut, Globe, Menu, X, FileText, PartyPopper } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
@@ -21,7 +21,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'nav.timetables', href: '/timetables', icon: Clock },
     { name: 'nav.templates', href: '/templates', icon: FileText },
     { name: 'nav.sounds', href: '/sounds', icon: Bell },
-    { name: 'nav.holidays', href: '/holidays', icon: Calendar },
+    { name: 'nav.holidays', href: '/holidays', icon: PartyPopper }
   ];
 
   // Sulge mobiilimenüü navigeerimisel
