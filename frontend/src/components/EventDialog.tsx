@@ -1,222 +1,183 @@
-import React, { useState, useEffect } from 'react';
-import { Pencil, Save, X } from 'lucide-react';
-import { sounds } from '../services/api';
-import type { Sound, TimetableEvent } from '../types/api';
+import { useState, useEffect } from 'react';
+import { Clock, Music } from 'lucide-react';
+import { useLanguage } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
+import Dialog from './ui/Dialog';
+import Input from './ui/Input';
+import Select from './ui/Select';
+import Alert from './ui/Alert';
+import { appConfig } from '../config/app.config';
+import { sounds as soundsApi, type Sound, type TimetableEvent } from '../services/api';
 
 interface EventDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<TimetableEvent, 'id' | 'timetable_id'>) => Promise<void>;
-  event?: TimetableEvent;
+  onSave: (event: Partial<TimetableEvent>) => Promise<void>;
+  event?: Partial<TimetableEvent>;
+  timetableId: number;
 }
 
-interface FormData {
-  event_name: string;
-  event_time: string;
-  sound_id: number;
-}
-
-interface FormErrors {
-  event_name?: string;
-  event_time?: string;
-  sound_id?: string;
-}
-
-const EventDialog: React.FC<EventDialogProps> = ({ isOpen, onClose, onSave, event }) => {
-  const [formData, setFormData] = useState<FormData>({
-    event_name: '',
-    event_time: '08:00',
-    sound_id: 0
-  });
-  const [soundsList, setSoundsList] = useState<Sound[]>([]);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const EventDialog = ({ isOpen, onClose, onSave, event, timetableId }: EventDialogProps) => {
+  const { t } = useLanguage();
+  const toast = useToast();
+  const [name, setName] = useState(event?.event_name || '');
+  const [time, setTime] = useState(event?.event_time || '');
+  const [soundId, setSoundId] = useState(event?.sound_id || 0);
+  const [sounds, setSounds] = useState<Sound[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load sounds list
     const loadSounds = async () => {
+      const toastId = toast.info(t('common.loading'), 0);
+      
       try {
-        const data = await sounds.getAll();
-        setSoundsList(data);
-        
-        // Set default sound if available
-        if (data.length > 0 && !event) {
-          setFormData(prev => ({ ...prev, sound_id: data[0].id }));
-        }
-      } catch (err) {
-        console.error('Error loading sounds:', err);
-        setErrors(prev => ({ ...prev, sound_id: 'Helinate laadimine ebaõnnestus' }));
+        const response = await soundsApi.getAll();
+        setSounds(response);
+        toast.removeToast(toastId);
+      } catch (error) {
+        toast.updateToast(toastId, {
+          message: t('errors.loadSoundsFailed'),
+          variant: 'error',
+          duration: appConfig.toast.duration.error
+        });
       }
     };
 
     if (isOpen) {
       loadSounds();
-      
-      // Set form data if editing existing event
-      if (event) {
-        setFormData({
-          event_name: event.event_name,
-          event_time: event.event_time,
-          sound_id: event.sound_id
-        });
-      }
+      // Reset form when dialog opens
+      setName(event?.event_name || '');
+      setTime(event?.event_time || '');
+      setSoundId(event?.sound_id || 0);
+      setErrors({});
     }
-  }, [isOpen, event]);
+  }, [isOpen, event, t, toast]);
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: Record<string, string> = {};
 
-    if (!formData.event_name.trim()) {
-      newErrors.event_name = 'Sündmuse nimi on kohustuslik';
-    } else if (formData.event_name.length < 2) {
-      newErrors.event_name = 'Nimi peab olema vähemalt 2 tähemärki pikk';
-    } else if (formData.event_name.length > 100) {
-      newErrors.event_name = 'Nimi võib olla maksimaalselt 100 tähemärki pikk';
+    if (!name.trim()) {
+      newErrors.name = t('validation.required');
+    } else if (name.length < appConfig.validation.minNameLength) {
+      newErrors.name = t('validation.minLength', { min: appConfig.validation.minNameLength });
+    } else if (name.length > appConfig.validation.maxNameLength) {
+      newErrors.name = t('validation.maxLength', { max: appConfig.validation.maxNameLength });
     }
 
-    if (!formData.event_time) {
-      newErrors.event_time = 'Kellaaeg on kohustuslik';
+    if (!time) {
+      newErrors.time = t('validation.required');
     }
 
-    if (!formData.sound_id) {
-      newErrors.sound_id = 'Helin on kohustuslik';
+    if (!soundId) {
+      newErrors.sound = t('validation.required');
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsLoading(true);
+    const toastId = toast.info(t('event.validating'), 0);
+
     try {
-      await onSave({
-        ...formData,
-        template_instance_id: null,
-        is_template_base: false
+      // Uuenda toasti valideerimise olekuga
+      toast.updateToast(toastId, {
+        message: t('event.processing'),
+        variant: 'info'
       });
+
+      // Uuenda toasti salvestamise olekuga
+      toast.updateToast(toastId, {
+        message: t('event.saving'),
+        variant: 'info'
+      });
+
+      await onSave({
+        id: event?.id,
+        event_name: name,
+        event_time: time,
+        sound_id: soundId,
+        timetable_id: timetableId
+      });
+
+      // Uuenda toasti õnnestumise olekuga
+      toast.updateToast(toastId, {
+        message: event?.id ? t('event.updateSuccess') : t('event.createSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
+      });
+
       onClose();
-    } catch (err) {
-      console.error('Error saving event:', err);
-      setErrors(prev => ({
-        ...prev,
-        event_name: 'Sündmuse salvestamine ebaõnnestus'
-      }));
+    } catch (error) {
+      // Uuenda toasti vea olekuga
+      toast.updateToast(toastId, {
+        message: t('errors.saveFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-medium text-primary flex items-center gap-2">
-            <Pencil className="w-5 h-5" />
-            {event ? 'Muuda sündmust' : 'Lisa sündmus'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-content-light hover:text-content"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={event?.id ? t('event.edit') : t('event.new')}
+      footer={
+        <Dialog.Footer.Buttons
+          onCancel={onClose}
+          onConfirm={handleSubmit}
+          isLoading={isLoading}
+        />
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          id="event-name"
+          label={t('event.name')}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={errors.name}
+          required
+          fullWidth
+        />
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Event name */}
-          <div>
-            <label className="block text-sm font-medium text-content mb-1">
-              Sündmuse nimi
-              <span className="text-warning ml-0.5">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.event_name}
-              onChange={e => setFormData(prev => ({ ...prev, event_name: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary ${
-                errors.event_name ? 'border-red-500' : ''
-              }`}
-              placeholder="Nt. 1. tund algab"
-            />
-            {errors.event_name && (
-              <p className="mt-1 text-sm text-red-500">{errors.event_name}</p>
-            )}
-          </div>
+        <Input
+          id="event-time"
+          type="time"
+          label={t('event.time')}
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          error={errors.time}
+          required
+          fullWidth
+          startIcon={<Clock className="h-5 w-5" />}
+        />
 
-          {/* Event time */}
-          <div>
-            <label className="block text-sm font-medium text-content mb-1">
-              Kellaaeg
-              <span className="text-warning ml-0.5">*</span>
-            </label>
-            <input
-              type="time"
-              value={formData.event_time}
-              onChange={e => setFormData(prev => ({ ...prev, event_time: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary ${
-                errors.event_time ? 'border-red-500' : ''
-              }`}
-            />
-            {errors.event_time && (
-              <p className="mt-1 text-sm text-red-500">{errors.event_time}</p>
-            )}
-          </div>
-
-          {/* Sound selection */}
-          <div>
-            <label className="block text-sm font-medium text-content mb-1">
-              Helin
-              <span className="text-warning ml-0.5">*</span>
-            </label>
-            <select
-              value={formData.sound_id}
-              onChange={e => setFormData(prev => ({ ...prev, sound_id: parseInt(e.target.value) }))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary ${
-                errors.sound_id ? 'border-red-500' : ''
-              }`}
-            >
-              <option value="0" disabled>Vali helin</option>
-              {soundsList.map(sound => (
-                <option key={sound.id} value={sound.id}>
-                  {sound.name}
-                </option>
-              ))}
-            </select>
-            {errors.sound_id && (
-              <p className="mt-1 text-sm text-red-500">{errors.sound_id}</p>
-            )}
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-content-light hover:text-content flex items-center gap-2"
-            >
-              <X className="w-5 h-5" />
-              Tühista
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50"
-            >
-              <Save className="w-5 h-5" />
-              Salvesta
-            </button>
-          </div>
-        </form>
+        <Select
+          id="event-sound"
+          label={t('event.sound')}
+          value={soundId}
+          onChange={(value) => setSoundId(Number(value))}
+          options={sounds.map(sound => ({
+            value: sound.id,
+            label: sound.name
+          }))}
+          error={errors.sound}
+          required
+          fullWidth
+          startIcon={<Music className="h-5 w-5" />}
+        />
       </div>
-    </div>
+    </Dialog>
   );
 };
 

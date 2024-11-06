@@ -1,262 +1,365 @@
-import { useState, useRef, FormEvent, useEffect } from 'react';
-import { Trash2, Play, Pause, Upload } from 'lucide-react';
-import { sounds } from '../services/api';
-import { Sound } from '../types/api';
-
-const API_URL = 'http://localhost:8000';
+import { useState, useEffect } from 'react';
+import { Music, Upload, Trash2, Pencil } from 'lucide-react';
+import { useLanguage } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
+import Card from './ui/Card';
+import Button from './ui/Button';
+import Dialog from './ui/Dialog';
+import Input from './ui/Input';
+import Alert from './ui/Alert';
+import LoadingSpinner from './ui/LoadingSpinner';
+import AudioPlayButton from './ui/AudioPlayButton';
+import { appConfig } from '../config/app.config';
+import { sounds as soundsApi, type Sound } from '../services/api';
 
 const SoundsView = () => {
-  const [soundList, setSoundList] = useState<Sound[]>([]);
+  const { t } = useLanguage();
+  const toast = useToast();
+  const [sounds, setSounds] = useState<Sound[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [uploadName, setUploadName] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadDialog, setUploadDialog] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<Sound | null>(null);
+  const [editDialog, setEditDialog] = useState<Sound | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Lae helinate nimekiri
+  useEffect(() => {
+    loadSounds();
+  }, []);
+
   const loadSounds = async () => {
     try {
-      const data = await sounds.getAll();
-      console.log('Loaded sounds:', data);  // Debug log
-      setSoundList(data);
-    } catch (err) {
-      console.error('Error loading sounds:', err);  // Debug log
-      setError('Helinate laadimine ebaõnnestus');
+      const response = await soundsApi.getAll();
+      setSounds(response);
+    } catch (error) {
+      setError(t('errors.loadFailed'));
+      toast.error(t('errors.loadFailed'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Lae helinate nimekiri komponendi laadimisel
+  const [uploadState, setUploadState] = useState({
+    name: '',
+    file: null as File | null,
+    isLoading: false,
+    error: ''
+  });
+
+  const [editState, setEditState] = useState({
+    name: '',
+    isLoading: false,
+    error: ''
+  });
+
   useEffect(() => {
-    loadSounds();
-  }, []);
+    // Kui editDialog muutub, seadista editState
+    if (editDialog) {
+      setEditState(prev => ({
+        ...prev,
+        name: editDialog.name,
+        error: ''
+      }));
+    }
+  }, [editDialog]);
 
-  // Helina üleslaadimine
-  const handleUpload = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!fileInputRef.current?.files?.length) {
-      setError('Palun valige helifail');
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > appConfig.upload.maxFileSize) {
+      setUploadState(prev => ({
+        ...prev,
+        error: t('validation.soundTooLarge')
+      }));
       return;
     }
 
-    const file = fileInputRef.current.files[0];
-    if (!file.type.startsWith('audio/')) {
-      setError('Ainult helifailid on lubatud');
+    if (!appConfig.upload.allowedSoundTypes.includes(file.type)) {
+      setUploadState(prev => ({
+        ...prev,
+        error: t('validation.invalidFileType')
+      }));
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {  // 2MB
-      setError('Fail on liiga suur (max 2MB)');
-      return;
-    }
+    setUploadState(prev => ({
+      ...prev,
+      file,
+      error: ''
+    }));
+  };
 
-    setIsUploading(true);
-    setError('');
+  const handleUpload = async () => {
+    if (!uploadState.file || !uploadState.name.trim()) return;
+
+    setUploadState(prev => ({ ...prev, isLoading: true, error: '' }));
+    const toastId = toast.info(t('sound.uploading'), 0);
 
     try {
       const formData = new FormData();
-      formData.append('sound_file', file);
-      formData.append('name', uploadName);
+      formData.append('sound_file', uploadState.file);
+      formData.append('name', uploadState.name);
 
-      await sounds.upload(formData);
-      await loadSounds();  // Uuenda nimekirja
-      setUploadName('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (err) {
-      console.error('Error uploading sound:', err);  // Debug log
-      setError('Helina üleslaadimine ebaõnnestus');
+      await soundsApi.upload(formData);
+      await loadSounds();
+      setUploadDialog(false);
+      
+      toast.updateToast(toastId, {
+        message: t('sound.uploadSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadState(prev => ({
+        ...prev,
+        error: t('errors.uploadFailed')
+      }));
+      
+      toast.updateToast(toastId, {
+        message: t('errors.uploadFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
+      });
     } finally {
-      setIsUploading(false);
+      setUploadState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Helina kustutamine
-  const handleDelete = async (id: number) => {
+  const handleEdit = async () => {
+    if (!editDialog || !editState.name.trim()) return;
+
+    setEditState(prev => ({ ...prev, isLoading: true, error: '' }));
+    const toastId = toast.info(t('sound.saving'), 0);
+
     try {
-      await sounds.delete(id);
-      setSoundList(soundList.filter(sound => sound.id !== id));
-    } catch (err) {
-      console.error('Error deleting sound:', err);  // Debug log
-      setError('Helina kustutamine ebaõnnestus');
+      await soundsApi.update(editDialog.id, { name: editState.name });
+      await loadSounds();
+      setEditDialog(null);
+      
+      toast.updateToast(toastId, {
+        message: t('sound.updateSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
+      });
+    } catch (error) {
+      console.error('Update error:', error);
+      setEditState(prev => ({
+        ...prev,
+        error: t('errors.saveFailed')
+      }));
+      
+      toast.updateToast(toastId, {
+        message: t('errors.saveFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
+      });
+    } finally {
+      setEditState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Helina mängimine/peatamine
-  const togglePlay = async (id: number) => {
-    if (currentlyPlaying === id) {
-      audioRef.current?.pause();
-      setCurrentlyPlaying(null);
-    } else {
-      setError('');  // Tühjenda varasemad vead
-      try {
-        if (audioRef.current) {
-          const token = localStorage.getItem('token');
-          
-          // Lisa JWT token
-          const headers = new Headers();
-          headers.append('Authorization', `Bearer ${token}`);
-          
-          const response = await fetch(`${API_URL}/sounds/${id}`, {
-            headers: headers,
-            credentials: 'include'
-          });
-          
-          if (!response.ok) {
-            throw new Error('Helina laadimine ebaõnnestus');
-          }
-          
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          
-          // Seadista audio element enne mängimist
-          audioRef.current.src = url;
-          audioRef.current.oncanplaythrough = async () => {
-            try {
-              await audioRef.current?.play();
-              setCurrentlyPlaying(id);
-            } catch (err) {
-              console.error('Error playing sound:', err);
-              setError('Helina mängimine ebaõnnestus');
-            }
-          };
-        }
-      } catch (err) {
-        console.error('Error loading sound:', err);  // Debug log
-        setError('Helina laadimine ebaõnnestus');
-      }
+  const handleDelete = async (sound: Sound) => {
+    const toastId = toast.info(t('sound.deleting'), 0);
+
+    try {
+      await soundsApi.delete(sound.id);
+      await loadSounds();
+      setDeleteDialog(null);
+      
+      toast.updateToast(toastId, {
+        message: t('sound.deleteSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
+      });
+    } catch (error) {
+      toast.updateToast(toastId, {
+        message: t('errors.deleteFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
+      });
     }
   };
 
-  // Puhasta URL objektid, kui komponent eemaldatakse
-  useEffect(() => {
-    return () => {
-      if (audioRef.current?.src) {
-        URL.revokeObjectURL(audioRef.current.src);
-      }
-    };
-  }, []);
+  // Hangi JWT token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem(appConfig.auth.tokenKey);
+    return token ? { 'Authorization': `Bearer ${token}` } : undefined;
+  };
+
+  if (isLoading) {
+    return <LoadingSpinner.Section />;
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-content">Helinad</h1>
+    <div className="container mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
+          <Music className="w-6 h-6" />
+          {t('sound.title')}
+        </h1>
+        <Button
+          onClick={() => setUploadDialog(true)}
+          startIcon={<Upload className="h-5 w-5" />}
+        >
+          {t('sound.new')}
+        </Button>
+      </div>
 
-      {/* Üleslaadimise vorm */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-lg font-medium text-content mb-4">Lisa uus helin</h2>
-        <form onSubmit={handleUpload} className="space-y-4">
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm">
-              {error}
-            </div>
+      {/* Error alert */}
+      {error && (
+        <Alert.Error onClose={() => setError(null)}>
+          {error}
+        </Alert.Error>
+      )}
+
+      {/* Sounds list */}
+      <div className="grid gap-4">
+        {sounds.length === 0 ? (
+          <Card>
+            <Card.Content>
+              <div className="text-center py-12">
+                <Music className="mx-auto h-12 w-12 text-content-light" />
+                <p className="mt-2 text-content-light">
+                  {t('sound.noSounds')}
+                </p>
+              </div>
+            </Card.Content>
+          </Card>
+        ) : (
+          sounds.map((sound) => (
+            <Card key={sound.id}>
+              <Card.Content>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Music className="h-5 w-5 text-content-light" />
+                    <span className="font-medium">{sound.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <AudioPlayButton
+                      variant="ghost"
+                      size="sm"
+                      url={`${appConfig.api.baseUrl}/sounds/${sound.id}`}
+                      headers={getAuthHeaders()}
+                      onPlayStateChange={(isPlaying) => setCurrentlyPlaying(isPlaying ? sound.id : null)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditDialog(sound)}
+                      startIcon={<Pencil className="h-4 w-4" />}
+                      title={t('sound.edit')}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteDialog(sound)}
+                      startIcon={<Trash2 className="h-4 w-4" />}
+                      title={t('sound.delete')}
+                    />
+                  </div>
+                </div>
+              </Card.Content>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Upload dialog */}
+      <Dialog
+        isOpen={uploadDialog}
+        onClose={() => setUploadDialog(false)}
+        title={t('sound.new')}
+        footer={
+          <Dialog.Footer.Buttons
+            onCancel={() => setUploadDialog(false)}
+            onConfirm={handleUpload}
+            isLoading={uploadState.isLoading}
+          />
+        }
+      >
+        <div className="space-y-4">
+          {uploadState.error && (
+            <Alert.Error>
+              {uploadState.error}
+            </Alert.Error>
           )}
 
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-content-light">
-              Helina nimi
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={uploadName}
-              onChange={(e) => setUploadName(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              required
-            />
-          </div>
+          <Input
+            label={t('sound.name')}
+            value={uploadState.name}
+            onChange={(e) => setUploadState(prev => ({ ...prev, name: e.target.value }))}
+            required
+            fullWidth
+          />
 
           <div>
-            <label htmlFor="sound" className="block text-sm font-medium text-content-light">
-              Helifail (max 2MB)
+            <label className="block text-sm font-medium text-content-light mb-1">
+              {t('sound.file')}
+              <span className="text-red-500 ml-1">*</span>
             </label>
             <input
-              id="sound"
               type="file"
-              ref={fileInputRef}
-              accept="audio/*"
-              className="mt-1 block w-full text-sm text-content-light
+              accept=".mp3,audio/mpeg"
+              onChange={handleFileSelect}
+              className="block w-full text-sm text-content-light
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0
                 file:text-sm file:font-medium
                 file:bg-primary file:text-white
                 hover:file:bg-primary-dark"
-              required
             />
           </div>
+        </div>
+      </Dialog>
 
-          <button
-            type="submit"
-            disabled={isUploading}
-            className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-white font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUploading ? (
-              <>
-                <Upload className="w-5 h-5 mr-2 animate-pulse" />
-                Üleslaadimine...
-              </>
-            ) : (
-              <>
-                <Upload className="w-5 h-5 mr-2" />
-                Lae üles
-              </>
-            )}
-          </button>
-        </form>
-      </div>
+      {/* Edit dialog */}
+      <Dialog
+        isOpen={!!editDialog}
+        onClose={() => setEditDialog(null)}
+        title={t('sound.edit')}
+        footer={
+          <Dialog.Footer.Buttons
+            onCancel={() => setEditDialog(null)}
+            onConfirm={handleEdit}
+            isLoading={editState.isLoading}
+          />
+        }
+      >
+        <div className="space-y-4">
+          {editState.error && (
+            <Alert.Error>
+              {editState.error}
+            </Alert.Error>
+          )}
 
-      {/* Helinate nimekiri */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-lg font-medium text-content mb-4">Helinate nimekiri</h2>
-        {isLoading ? (
-          <div className="text-content-light">Laadimine...</div>
-        ) : soundList.length === 0 ? (
-          <div className="text-content-light">Helinaid pole lisatud</div>
-        ) : (
-          <div className="space-y-2">
-            {soundList.map((sound) => (
-              <div
-                key={sound.id}
-                className="flex items-center justify-between p-3 bg-background rounded-lg"
-              >
-                <span className="text-content">{sound.name}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => togglePlay(sound.id)}
-                    className="p-2 text-content-light hover:text-primary rounded-lg hover:bg-background-dark"
-                  >
-                    {currentlyPlaying === sound.id ? (
-                      <Pause className="w-5 h-5" />
-                    ) : (
-                      <Play className="w-5 h-5" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(sound.id)}
-                    className="p-2 text-content-light hover:text-red-500 rounded-lg hover:bg-background-dark"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          <Input
+            label={t('sound.name')}
+            value={editState.name}
+            onChange={(e) => setEditState(prev => ({ ...prev, name: e.target.value }))}
+            required
+            fullWidth
+          />
+        </div>
+      </Dialog>
 
-      {/* Audio element helinate mängimiseks */}
-      <audio
-        ref={audioRef}
-        onEnded={() => setCurrentlyPlaying(null)}
-        onError={(e) => {
-          console.error('Audio error:', e);  // Debug log
-          setError('Helina mängimine ebaõnnestus');
-          setCurrentlyPlaying(null);
-        }}
-      />
+      {/* Delete confirmation dialog */}
+      <Dialog
+        isOpen={!!deleteDialog}
+        onClose={() => setDeleteDialog(null)}
+        title={t('sound.delete')}
+        footer={
+          <Dialog.Footer.Buttons
+            onCancel={() => setDeleteDialog(null)}
+            onConfirm={() => deleteDialog && handleDelete(deleteDialog)}
+            confirmText={t('common.delete')}
+          />
+        }
+      >
+        <p>{t('sound.deleteConfirm')}</p>
+      </Dialog>
     </div>
   );
 };

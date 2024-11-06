@@ -1,103 +1,132 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, Lock, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
+import Logo from './Logo';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import Card from './ui/Card';
+import { appConfig } from '../config/app.config';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
+  const toast = useToast();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+
+    // Valideeri sisendid
+    if (!username.trim() || !password.trim()) {
+      toast.error(t('validation.required'));
+      return;
+    }
+
     setIsLoading(true);
+    const toastId = toast.info(t('auth.authenticating'), 0);
 
     try {
+      // Uuenda toasti autentimise olekuga
+      toast.updateToast(toastId, {
+        message: t('auth.verifying'),
+        variant: 'info'
+      });
+
       await login(username, password);
+
+      // Uuenda toasti õnnestumise olekuga
+      toast.updateToast(toastId, {
+        message: t('auth.loginSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
+      });
+
       navigate('/', { replace: true });
     } catch (err) {
-      setError('Vale kasutajanimi või parool');
+      // Uuenda toasti vea olekuga
+      toast.updateToast(toastId, {
+        message: t('errors.loginFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const toggleLanguage = () => {
+    const newLang = language === 'et' ? 'en' : 'et';
+    setLanguage(newLang);
+    toast.info(t('common.languageChanged', { language: t(`languages.${newLang}`) }));
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center mb-8">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 12 85 32" className="w-32 mx-auto text-primary">
-            <path d="M40 40 L40 15 M40 40 L55 40" 
-                  stroke="currentColor" 
-                  strokeWidth="4" 
-                  strokeLinecap="round"
-                  fill="none"/>
-            <path d="M40 15 A25 25 0 0 1 65 40" 
-                  stroke="currentColor" 
-                  strokeWidth="0.5"
-                  strokeDasharray="0.5,4"
-                  fill="none"/>
-            <circle cx="52.5" cy="18.4" r="1.2" fill="currentColor"/>
-            <circle cx="61.6" cy="27.5" r="1.2" fill="currentColor"/>
-            <text x="59" y="41" 
-                  fontFamily="Arial" 
-                  fontSize="20" 
-                  fontWeight="300"
-                  fill="currentColor"
-                  letterSpacing="1">ıble</text>
-          </svg>
-          <h2 className="mt-4 text-2xl font-bold text-content">Logi sisse</h2>
-        </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      {/* Language toggle */}
+      <div className="fixed top-4 right-4">
+        <Button
+          variant="ghost"
+          onClick={toggleLanguage}
+          className="gap-2"
+          startIcon={<Globe className="h-5 w-5" />}
+        >
+          <span className="uppercase">{language}</span>
+        </Button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm">
-              {error}
+      <Card className="w-full max-w-md">
+        <Card.Content>
+          <div className="text-center mb-8">
+            <div className="w-32 mx-auto text-primary">
+              <Logo />
             </div>
-          )}
+            <h1 className="mt-4 text-2xl font-bold text-content">
+              {t('auth.login')}
+            </h1>
+          </div>
 
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-content-light">
-              Kasutajanimi
-            </label>
-            <input
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Input
               id="username"
-              type="text"
+              label={t('auth.username')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
+              fullWidth
+              startIcon={<User className="h-5 w-5" />}
+              disabled={isLoading}
             />
-          </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-content-light">
-              Parool
-            </label>
-            <input
+            <Input
               id="password"
               type="password"
+              label={t('auth.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-content focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
+              fullWidth
+              startIcon={<Lock className="h-5 w-5" />}
+              disabled={isLoading}
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 px-4 rounded-md bg-primary text-white font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Sisselogimine...' : 'Logi sisse'}
-          </button>
-        </form>
-      </div>
+            <Button
+              type="submit"
+              isLoading={isLoading}
+              fullWidth
+            >
+              {t('auth.login')}
+            </Button>
+          </form>
+        </Card.Content>
+      </Card>
     </div>
   );
 };

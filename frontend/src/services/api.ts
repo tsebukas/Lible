@@ -1,155 +1,304 @@
 import axios from 'axios';
-import { AuthResponse, User, Timetable, EventTemplate, Sound, Holiday, TimetableEvent } from '../types/api';
+import { appConfig } from '../config/app.config';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = appConfig.api.baseUrl;
 
-const api = axios.create({
+// Axios instance
+const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
-// Interceptor lisab JWT tokeni päistesse
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && config.headers) {
+// Axios interceptor autentimise jaoks
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem(appConfig.auth.tokenKey);
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
-// Helper funktsioon URLSearchParams jaoks
-const encodeFormData = (data: Record<string, string>) => {
-  return Object.keys(data)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
-    .join('&');
-};
+// Auth tüübid
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
 
-// Autentimisteenused
+export interface AuthResponse {
+  token: string;
+  refreshToken: string | null;
+  user: {
+    id: number;
+    username: string;
+    language: string;
+  };
+}
+
+// Tüübid
+export interface Sound {
+  id: number;
+  name: string;
+  filename: string;
+}
+
+export interface Timetable {
+  id: number;
+  name: string;
+  valid_from: string;
+  valid_until: string | null;
+  weekdays: number;
+}
+
+export interface TimetableEvent {
+  id: number;
+  timetable_id: number;
+  event_name: string;
+  event_time: string;
+  sound_id: number;
+  template_instance_id: number | null;
+  is_template_base: boolean;
+}
+
+export interface EventTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  items: EventTemplateItem[];
+}
+
+export interface EventTemplateItem {
+  id: number;
+  template_id: number;
+  offset_minutes: number;
+  event_name: string;
+  sound_id: number;
+}
+
+// Auth API
 export const auth = {
-  async login(username: string, password: string): Promise<AuthResponse> {
-    const formData = encodeFormData({
-      username,
-      password,
-      grant_type: 'password'
-    });
-    
-    const response = await api.post<AuthResponse>('/token', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-
-    if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token);
-    }
-    return response.data;
+  login: async (data: LoginRequest) => {
+    return axiosInstance.post<AuthResponse>('/auth/login', data);
   },
 
-  logout() {
-    localStorage.removeItem('token');
+  logout: async () => {
+    return axiosInstance.post('/auth/logout');
   },
 
-  async getCurrentUser(): Promise<User> {
-    const response = await api.get<User>('/users/me');
-    return response.data;
+  refresh: async (data: { refreshToken: string }) => {
+    return axiosInstance.post<AuthResponse>('/auth/refresh', data);
+  },
+
+  check: async () => {
+    return axiosInstance.get('/auth/check');
   }
 };
 
-// Tunniplaanide teenused
-export const timetables = {
-  async getAll(): Promise<Timetable[]> {
-    const response = await api.get<Timetable[]>('/timetables');
-    return response.data;
-  },
-
-  async getById(id: number): Promise<Timetable> {
-    const response = await api.get<Timetable>(`/timetables/${id}`);
-    return response.data;
-  },
-
-  async create(data: Omit<Timetable, 'id' | 'user_id'>): Promise<Timetable> {
-    const response = await api.post<Timetable>('/timetables', data);
-    return response.data;
-  },
-
-  async update(id: number, data: Omit<Timetable, 'id' | 'user_id'>): Promise<Timetable> {
-    const response = await api.put<Timetable>(`/timetables/${id}`, data);
-    return response.data;
-  },
-
-  async delete(id: number): Promise<void> {
-    await api.delete(`/timetables/${id}`);
-  },
-
-  async getEvents(id: number): Promise<TimetableEvent[]> {
-    const response = await api.get<TimetableEvent[]>(`/timetables/${id}/events`);
-    return response.data;
-  },
-
-  async createEvent(id: number, data: Omit<TimetableEvent, 'id' | 'timetable_id'>): Promise<TimetableEvent> {
-    const response = await api.post<TimetableEvent>(`/timetables/${id}/events`, data);
-    return response.data;
-  },
-
-  async updateEvent(timetableId: number, eventId: number, data: Omit<TimetableEvent, 'id' | 'timetable_id'>): Promise<TimetableEvent> {
-    const response = await api.put<TimetableEvent>(`/timetables/${timetableId}/events/${eventId}`, data);
-    return response.data;
-  },
-
-  async deleteEvent(timetableId: number, eventId: number): Promise<void> {
-    await api.delete(`/timetables/${timetableId}/events/${eventId}`);
-  }
-};
-
-// Mallide teenused
+// Templates API
 export const templates = {
-  async getAll(): Promise<EventTemplate[]> {
-    const response = await api.get<EventTemplate[]>('/templates');
-    return response.data;
-  },
-
-  async create(data: Omit<EventTemplate, 'id'>): Promise<EventTemplate> {
-    const response = await api.post<EventTemplate>('/templates', data);
-    return response.data;
-  }
-};
-
-// Helinate teenused
-export const sounds = {
-  async getAll(): Promise<Sound[]> {
-    const response = await api.get<Sound[]>('/sounds');
-    return response.data;
-  },
-
-  async upload(formData: FormData): Promise<Sound> {
-    const response = await api.post<Sound>('/sounds', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  getAll: async (): Promise<EventTemplate[]> => {
+    const response = await fetch(`${API_URL}/templates`, {
+      headers: getAuthHeaders()
     });
-    return response.data;
+    if (!response.ok) throw new Error('Failed to fetch templates');
+    return response.json();
   },
 
-  async delete(id: number): Promise<void> {
-    await api.delete(`/sounds/${id}`);
+  getById: async (id: number): Promise<EventTemplate> => {
+    const response = await fetch(`${API_URL}/templates/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch template');
+    return response.json();
+  },
+
+  create: async (data: Omit<EventTemplate, 'id'>): Promise<EventTemplate> => {
+    const response = await fetch(`${API_URL}/templates`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create template');
+    return response.json();
+  },
+
+  update: async (id: number, data: Partial<Omit<EventTemplate, 'id'>>): Promise<EventTemplate> => {
+    const response = await fetch(`${API_URL}/templates/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update template');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/templates/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete template');
   }
 };
 
-// Pühade teenused
-export const holidays = {
-  async getAll(): Promise<Holiday[]> {
-    const response = await api.get<Holiday[]>('/holidays');
-    return response.data;
+// API päringud
+const getAuthHeaders = () => {
+  const token = localStorage.getItem(appConfig.auth.tokenKey);
+  return token ? { 'Authorization': `Bearer ${token}` } : undefined;
+};
+
+export const sounds = {
+  getAll: async (): Promise<Sound[]> => {
+    const response = await fetch(`${API_URL}/sounds`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch sounds');
+    return response.json();
   },
 
-  async create(data: Omit<Holiday, 'id'>): Promise<Holiday> {
-    const response = await api.post<Holiday>('/holidays', data);
-    return response.data;
+  getById: async (id: number): Promise<Sound> => {
+    const response = await fetch(`${API_URL}/sounds/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch sound');
+    return response.json();
+  },
+
+  upload: async (data: FormData): Promise<Sound> => {
+    const response = await fetch(`${API_URL}/sounds`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: data
+    });
+    if (!response.ok) throw new Error('Failed to upload sound');
+    return response.json();
+  },
+
+  update: async (id: number, data: { name: string }): Promise<Sound> => {
+    const response = await fetch(`${API_URL}/sounds/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update sound');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/sounds/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete sound');
   }
 };
 
-export default api;
+export const timetables = {
+  getAll: async (): Promise<Timetable[]> => {
+    const response = await fetch(`${API_URL}/timetables`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch timetables');
+    return response.json();
+  },
+
+  getById: async (id: number): Promise<Timetable> => {
+    const response = await fetch(`${API_URL}/timetables/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch timetable');
+    return response.json();
+  },
+
+  create: async (data: Omit<Timetable, 'id'>): Promise<Timetable> => {
+    const response = await fetch(`${API_URL}/timetables`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create timetable');
+    return response.json();
+  },
+
+  update: async (id: number, data: Partial<Omit<Timetable, 'id'>>): Promise<Timetable> => {
+    const response = await fetch(`${API_URL}/timetables/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update timetable');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/timetables/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete timetable');
+  },
+
+  // Tunniplaani sündmused
+  getEvents: async (timetableId: number): Promise<TimetableEvent[]> => {
+    const response = await fetch(`${API_URL}/timetables/${timetableId}/events`, {
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch timetable events');
+    return response.json();
+  },
+
+  createEvent: async (timetableId: number, data: Omit<TimetableEvent, 'id' | 'timetable_id'>): Promise<TimetableEvent> => {
+    const response = await fetch(`${API_URL}/timetables/${timetableId}/events`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create timetable event');
+    return response.json();
+  },
+
+  updateEvent: async (timetableId: number, eventId: number, data: Partial<Omit<TimetableEvent, 'id' | 'timetable_id'>>): Promise<TimetableEvent> => {
+    const response = await fetch(`${API_URL}/timetables/${timetableId}/events/${eventId}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update timetable event');
+    return response.json();
+  },
+
+  deleteEvent: async (timetableId: number, eventId: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/timetables/${timetableId}/events/${eventId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete timetable event');
+  }
+};
+
+// Default export for axios instance
+export default {
+  axios: axiosInstance
+};

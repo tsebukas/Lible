@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from pydantic import BaseModel
 from . import models, schemas, security
 from .database import engine, get_db
 
@@ -40,8 +41,59 @@ if not os.path.exists(SOUNDS_DIRECTORY):
     os.makedirs(SOUNDS_DIRECTORY)
     print(f"Created sounds directory at: {SOUNDS_DIRECTORY}")  # Debug log
 
+# Login request mudel
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# Autentimine
+@app.post("/api/auth/login", response_model=schemas.LoginResponse)
+async def login(
+    login_data: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    user = security.authenticate_user(db, login_data.username, login_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Vale kasutajanimi või parool",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {
+        "token": access_token,
+        "refreshToken": None,  # TODO: Implement refresh token
+        "user": user
+    }
+
+@app.post("/api/auth/logout")
+async def logout(current_user: models.User = Depends(security.get_current_user)):
+    return {"message": "Välja logitud"}
+
+@app.post("/api/auth/refresh", response_model=schemas.Token)
+async def refresh_token(
+    refresh_token: schemas.RefreshToken,
+    db: Session = Depends(get_db)
+):
+    # TODO: Implement refresh token logic
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Token refresh not implemented"
+    )
+
+@app.get("/api/auth/check")
+async def check_auth(current_user: models.User = Depends(security.get_current_user)):
+    return {"message": "Autenditud"}
+
+@app.get("/api/auth/me", response_model=schemas.User)
+async def get_current_user(current_user: models.User = Depends(security.get_current_user)):
+    return current_user
+
 # Helinate serveerimine ID järgi
-@app.get("/sounds/{sound_id}")
+@app.get("/api/sounds/{sound_id}")
 def get_sound_file(
     sound_id: int,
     db: Session = Depends(get_db),
@@ -57,41 +109,15 @@ def get_sound_file(
     
     return FileResponse(file_path, media_type="audio/mpeg")
 
-# Autentimine
-@app.post("/token", response_model=schemas.Token)
-async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    user = security.authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Vale kasutajanimi või parool",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# Kasutaja info
-@app.get("/users/me", response_model=schemas.User)
-async def read_users_me(
-    current_user: models.User = Depends(security.get_current_user)
-):
-    return current_user
-
 # Helinate haldus
-@app.get("/sounds", response_model=List[schemas.Sound])
+@app.get("/api/sounds", response_model=List[schemas.Sound])
 def get_sounds(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     return db.query(models.Sound).all()
 
-@app.post("/sounds", response_model=schemas.Sound)
+@app.post("/api/sounds", response_model=schemas.Sound)
 async def create_sound(
     sound_file: UploadFile = File(...),
     name: str = Form(...),
@@ -136,7 +162,28 @@ async def create_sound(
     print(f"Sound record created: {db_sound.id}")  # Debug log
     return db_sound
 
-@app.delete("/sounds/{sound_id}")
+@app.put("/api/sounds/{sound_id}", response_model=schemas.Sound)
+def update_sound(
+    sound_id: int,
+    sound_update: schemas.SoundUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    # Leia helin andmebaasist
+    sound = db.query(models.Sound).filter(models.Sound.id == sound_id).first()
+    if not sound:
+        raise HTTPException(status_code=404, detail="Helin ei leitud")
+    
+    # Uuenda nime
+    sound.name = sound_update.name
+    
+    # Salvesta muudatused
+    db.commit()
+    db.refresh(sound)
+    
+    return sound
+
+@app.delete("/api/sounds/{sound_id}")
 def delete_sound(
     sound_id: int,
     db: Session = Depends(get_db),
@@ -158,14 +205,14 @@ def delete_sound(
     return {"message": "Helin kustutatud"}
 
 # Tunniplaanid
-@app.get("/timetables", response_model=List[schemas.Timetable])
+@app.get("/api/timetables", response_model=List[schemas.Timetable])
 def get_timetables(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     return db.query(models.Timetable).filter(models.Timetable.user_id == current_user.id).all()
 
-@app.post("/timetables", response_model=schemas.Timetable)
+@app.post("/api/timetables", response_model=schemas.Timetable)
 def create_timetable(
     timetable: schemas.TimetableCreate,
     db: Session = Depends(get_db),
@@ -187,7 +234,7 @@ def create_timetable(
     db.refresh(db_timetable)
     return db_timetable
 
-@app.get("/timetables/{timetable_id}", response_model=schemas.Timetable)
+@app.get("/api/timetables/{timetable_id}", response_model=schemas.Timetable)
 def get_timetable(
     timetable_id: int,
     db: Session = Depends(get_db),
@@ -201,7 +248,7 @@ def get_timetable(
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
     return timetable
 
-@app.put("/timetables/{timetable_id}", response_model=schemas.Timetable)
+@app.put("/api/timetables/{timetable_id}", response_model=schemas.Timetable)
 def update_timetable(
     timetable_id: int,
     timetable: schemas.TimetableCreate,
@@ -233,7 +280,7 @@ def update_timetable(
     db.refresh(db_timetable)
     return db_timetable
 
-@app.delete("/timetables/{timetable_id}")
+@app.delete("/api/timetables/{timetable_id}")
 def delete_timetable(
     timetable_id: int,
     db: Session = Depends(get_db),
@@ -251,14 +298,14 @@ def delete_timetable(
     return {"message": "Tunniplaan kustutatud"}
 
 # Mallid
-@app.get("/templates", response_model=List[schemas.EventTemplate])
+@app.get("/api/templates", response_model=List[schemas.EventTemplate])
 def get_templates(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     return db.query(models.EventTemplate).all()
 
-@app.post("/templates", response_model=schemas.EventTemplate)
+@app.post("/api/templates", response_model=schemas.EventTemplate)
 def create_template(
     template: schemas.EventTemplateCreate,
     db: Session = Depends(get_db),
@@ -283,14 +330,14 @@ def create_template(
     return db_template
 
 # Pühad
-@app.get("/holidays", response_model=List[schemas.Holiday])
+@app.get("/api/holidays", response_model=List[schemas.Holiday])
 def get_holidays(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
     return db.query(models.Holiday).all()
 
-@app.post("/holidays", response_model=schemas.Holiday)
+@app.post("/api/holidays", response_model=schemas.Holiday)
 def create_holiday(
     holiday: schemas.HolidayCreate,
     db: Session = Depends(get_db),
@@ -303,7 +350,7 @@ def create_holiday(
     return db_holiday
 
 # Tunniplaani sündmused
-@app.get("/timetables/{timetable_id}/events", response_model=List[schemas.TimetableEvent])
+@app.get("/api/timetables/{timetable_id}/events", response_model=List[schemas.TimetableEvent])
 def get_timetable_events(
     timetable_id: int,
     db: Session = Depends(get_db),
@@ -317,7 +364,7 @@ def get_timetable_events(
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
     return timetable.events
 
-@app.post("/timetables/{timetable_id}/events", response_model=schemas.TimetableEvent)
+@app.post("/api/timetables/{timetable_id}/events", response_model=schemas.TimetableEvent)
 def create_timetable_event(
     timetable_id: int,
     event: schemas.TimetableEventCreate,
@@ -337,7 +384,7 @@ def create_timetable_event(
     db.refresh(db_event)
     return db_event
 
-@app.put("/timetables/{timetable_id}/events/{event_id}", response_model=schemas.TimetableEvent)
+@app.put("/api/timetables/{timetable_id}/events/{event_id}", response_model=schemas.TimetableEvent)
 def update_timetable_event(
     timetable_id: int,
     event_id: int,
@@ -368,7 +415,7 @@ def update_timetable_event(
     db.refresh(db_event)
     return db_event
 
-@app.delete("/timetables/{timetable_id}/events/{event_id}")
+@app.delete("/api/timetables/{timetable_id}/events/{event_id}")
 def delete_timetable_event(
     timetable_id: int,
     event_id: int,

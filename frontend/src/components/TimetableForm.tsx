@@ -1,65 +1,81 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Save, X } from 'lucide-react';
-import { timetables } from '../services/api';
+import { Calendar } from 'lucide-react';
+import { useLanguage } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
+import Card from './ui/Card';
+import Input from './ui/Input';
+import Button from './ui/Button';
+import Alert from './ui/Alert';
+import { appConfig } from '../config/app.config';
+import { timetables, type Timetable } from '../services/api';
 
-const WEEKDAYS = [
-  { id: 1, label: 'E' },
-  { id: 2, label: 'T' },
-  { id: 3, label: 'K' },
-  { id: 4, label: 'N' },
-  { id: 5, label: 'R' },
-  { id: 6, label: 'L' },
-  { id: 7, label: 'P' }
-];
-
-interface FormData {
-  name: string;
-  validFrom: string;
-  validUntil: string;
-  weekdays: number[];
+interface WeekdayOption {
+  value: number;
+  label: string;
+  shortLabel: string;
 }
 
-interface FormErrors {
-  name?: string;
-  validFrom?: string;
-  validUntil?: string;
-  weekdays?: string;
-}
-
-const TimetableForm: React.FC = () => {
+const TimetableForm = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<FormData>({
+  const toast = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [formData, setFormData] = useState({
     name: '',
-    validFrom: new Date().toISOString().split('T')[0],
-    validUntil: '',
-    weekdays: []
+    valid_from: '',
+    valid_until: '',
+    weekdays: [] as number[]
   });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Nädalapäevade valikud
+  const weekdayOptions: WeekdayOption[] = [
+    { value: 1, label: t('common.weekdayLong.1'), shortLabel: t('common.weekdayShort.1') },
+    { value: 2, label: t('common.weekdayLong.2'), shortLabel: t('common.weekdayShort.2') },
+    { value: 3, label: t('common.weekdayLong.3'), shortLabel: t('common.weekdayShort.3') },
+    { value: 4, label: t('common.weekdayLong.4'), shortLabel: t('common.weekdayShort.4') },
+    { value: 5, label: t('common.weekdayLong.5'), shortLabel: t('common.weekdayShort.5') },
+    { value: 6, label: t('common.weekdayLong.6'), shortLabel: t('common.weekdayShort.6') },
+    { value: 7, label: t('common.weekdayLong.7'), shortLabel: t('common.weekdayShort.7') }
+  ];
+
+  const toggleWeekday = (value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      weekdays: prev.weekdays.includes(value)
+        ? prev.weekdays.filter(day => day !== value)
+        : [...prev.weekdays, value].sort()
+    }));
+    // Clear weekday error when selection changes
+    if (errors.weekdays) {
+      setErrors(prev => ({ ...prev, weekdays: '' }));
+    }
+  };
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Nimi on kohustuslik';
-    } else if (formData.name.length < 2) {
-      newErrors.name = 'Nimi peab olema vähemalt 2 tähemärki pikk';
-    } else if (formData.name.length > 100) {
-      newErrors.name = 'Nimi võib olla maksimaalselt 100 tähemärki pikk';
+      newErrors.name = t('validation.required');
+    } else if (formData.name.length < appConfig.validation.minNameLength) {
+      newErrors.name = t('validation.minLength', { min: appConfig.validation.minNameLength });
+    } else if (formData.name.length > appConfig.validation.maxNameLength) {
+      newErrors.name = t('validation.maxLength', { max: appConfig.validation.maxNameLength });
     }
 
-    if (!formData.validFrom) {
-      newErrors.validFrom = 'Alguskuupäev on kohustuslik';
+    if (!formData.valid_from) {
+      newErrors.valid_from = t('validation.required');
     }
 
-    if (formData.validUntil && formData.validFrom && 
-        new Date(formData.validUntil) <= new Date(formData.validFrom)) {
-      newErrors.validUntil = 'Lõppkuupäev peab olema hilisem kui alguskuupäev';
+    if (formData.valid_from && formData.valid_until && 
+        new Date(formData.valid_from) >= new Date(formData.valid_until)) {
+      newErrors.valid_until = t('validation.dateRange');
     }
 
     if (formData.weekdays.length === 0) {
-      newErrors.weekdays = 'Vähemalt üks nädalapäev peab olema valitud';
+      newErrors.weekdays = t('validation.noWeekdays');
     }
 
     setErrors(newErrors);
@@ -73,153 +89,148 @@ const TimetableForm: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsLoading(true);
+    const toastId = toast.info(t('timetable.saving'), 0);
+
     try {
-      // Convert weekdays from ISO format (1-7) to bitmask (0-6)
-      const weekdaysBitmask = formData.weekdays
-        .reduce((acc, day) => acc | (1 << (day - 1)), 0);
-      
+      // Uuenda toasti valideerimise olekuga
+      toast.updateToast(toastId, {
+        message: t('timetable.validating'),
+        variant: 'info'
+      });
+
+      // Konverdi nädalapäevad bitmask'iks
+      const weekdaysBitmask = formData.weekdays.reduce(
+        (acc, day) => acc + Math.pow(2, day - 1),
+        0
+      );
+
+      // Uuenda toasti salvestamise olekuga
+      toast.updateToast(toastId, {
+        message: t('timetable.saving'),
+        variant: 'info'
+      });
+
       await timetables.create({
         name: formData.name,
-        valid_from: formData.validFrom,
-        valid_until: formData.validUntil || null,
+        valid_from: formData.valid_from,
+        valid_until: formData.valid_until || null,
         weekdays: weekdaysBitmask
+      });
+
+      // Uuenda toasti õnnestumise olekuga
+      toast.updateToast(toastId, {
+        message: t('timetable.createSuccess'),
+        variant: 'success',
+        duration: appConfig.toast.duration.success
       });
 
       navigate('/timetables');
     } catch (error) {
-      console.error('Error creating timetable:', error);
-      setErrors({
-        name: 'Tunniplaani salvestamine ebaõnnestus. Palun proovige uuesti.'
+      // Uuenda toasti vea olekuga
+      toast.updateToast(toastId, {
+        message: t('errors.saveFailed'),
+        variant: 'error',
+        duration: appConfig.toast.duration.error
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const handleWeekdayToggle = (dayId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      weekdays: prev.weekdays.includes(dayId)
-        ? prev.weekdays.filter(id => id !== dayId)
-        : [...prev.weekdays, dayId]
-    }));
-  };
-
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-            <Calendar className="w-6 h-6" />
-            Uus tunniplaan
-          </h1>
-        </div>
+    <Card>
+      <Card.Header>
+        <Card.Title>{t('timetable.new')}</Card.Title>
+      </Card.Header>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6">
+      <form onSubmit={handleSubmit}>
+        <Card.Content>
           <div className="space-y-6">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-content mb-1">
-                Tunniplaani nimi
-                <span className="text-warning ml-0.5">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary"
-                placeholder="Nt. Tavaline tunniplaan"
+            <Input
+              id="timetable-name"
+              label={t('timetable.name')}
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              error={errors.name}
+              required
+              fullWidth
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                id="valid-from"
+                type="date"
+                label={t('timetable.validFrom')}
+                value={formData.valid_from}
+                onChange={(e) => setFormData(prev => ({ ...prev, valid_from: e.target.value }))}
+                error={errors.valid_from}
+                required
+                fullWidth
+                startIcon={<Calendar className="h-5 w-5" />}
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-warning">{errors.name}</p>
-              )}
+
+              <Input
+                id="valid-until"
+                type="date"
+                label={t('timetable.validUntil')}
+                value={formData.valid_until}
+                onChange={(e) => setFormData(prev => ({ ...prev, valid_until: e.target.value }))}
+                error={errors.valid_until}
+                fullWidth
+                startIcon={<Calendar className="h-5 w-5" />}
+              />
             </div>
 
-            {/* Validity period */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-content mb-1">
-                  Kehtiv alates
-                  <span className="text-warning ml-0.5">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.validFrom}
-                  onChange={e => setFormData(prev => ({ ...prev, validFrom: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary"
-                />
-                {errors.validFrom && (
-                  <p className="mt-1 text-sm text-warning">{errors.validFrom}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-content mb-1">
-                  Kehtiv kuni
-                </label>
-                <input
-                  type="date"
-                  value={formData.validUntil}
-                  onChange={e => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary"
-                />
-                {errors.validUntil && (
-                  <p className="mt-1 text-sm text-warning">{errors.validUntil}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Weekdays */}
             <div>
-              <label className="block text-sm font-medium text-content mb-2">
-                Nädalapäevad
-                <span className="text-warning ml-0.5">*</span>
+              <label className="block text-sm font-medium text-content-light mb-2">
+                {t('timetable.weekdays')}
+                <span className="text-red-500 ml-1">*</span>
               </label>
-              <div className="flex gap-2">
-                {WEEKDAYS.map(day => (
-                  <button
-                    key={day.id}
+              
+              <div className="flex flex-wrap gap-2">
+                {weekdayOptions.map((day) => (
+                  <Button
+                    key={day.value}
                     type="button"
-                    onClick={() => handleWeekdayToggle(day.id)}
-                    className={`
-                      w-9 h-9 rounded-lg font-medium text-sm
-                      ${formData.weekdays.includes(day.id)
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-content-light hover:bg-gray-200'}
-                    `}
+                    variant={formData.weekdays.includes(day.value) ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleWeekday(day.value)}
+                    title={day.label}
                   >
-                    {day.label}
-                  </button>
+                    {day.shortLabel}
+                  </Button>
                 ))}
               </div>
+
               {errors.weekdays && (
-                <p className="mt-1 text-sm text-warning">{errors.weekdays}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.weekdays}
+                </p>
               )}
             </div>
-
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => navigate('/timetables')}
-                className="px-4 py-2 text-content-light hover:text-content flex items-center gap-2"
-              >
-                <X className="w-5 h-5" />
-                Tühista
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50"
-              >
-                <Save className="w-5 h-5" />
-                Salvesta
-              </button>
-            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        </Card.Content>
+
+        <Card.Footer>
+          <Card.Actions>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/timetables')}
+              disabled={isLoading}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              isLoading={isLoading}
+            >
+              {t('common.save')}
+            </Button>
+          </Card.Actions>
+        </Card.Footer>
+      </form>
+    </Card>
   );
 };
 

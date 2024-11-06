@@ -10,6 +10,25 @@ TEHTUD:
    - Sisselogimise vorm
    - Helinate haldus (üleslaadimine, kustutamine, mängimine)
 
+3. Kasutajakogemuse täiendused
+   - Toast teadete süsteem
+   - Progressi näitamine vormides
+   - Sessiooni aegumise käsitlus
+   - Keelevahetuse tugi
+   - Ligipääsetavuse parandused
+
+4. Konfiguratsiooni täiendused
+   - Struktureeritud seaded (app.config.ts)
+   - Tüübitud konfiguratsioon
+   - Keskkonna muutujate tugi
+   - Järjepidev stiilide süsteem
+
+5. Autentimise täiendused
+   - Token uuendamise loogika
+   - Sessiooni aegumise kontroll
+   - API interceptorid
+   - Turvaline väljalogimine
+
 JÄRGMISED SAMMUD (prioriteedi järjekorras):
 
 1. Tunniplaanide haldus
@@ -34,8 +53,28 @@ JÄRGMISED SAMMUD (prioriteedi järjekorras):
    - Logide pidamine
 
 5. Täiendavad funktsioonid
-   - Kasutaja keele-eelistused
    - Tunniplaanide import/eksport
+   - Pühade automaatne import
+   - Helifailide konverteerimine
+   - Detailsem monitooring
 
+JÄRGMISED TEHNILISED TÄIENDUSED:
+1. Backend API täiendused
+   - Rate limiting
+   - Põhjalikum veakäsitlus
+   - API dokumentatsiooni täiendamine
+   - Testide lisamine
 
-Soovituslik järgmine samm oleks tunniplaanide halduse arendamine, kuna see on süsteemi põhifunktsioon ja nüüd on olemas vajalik helinate tugi.
+2. Frontend optimeerimised
+   - Komponentide lazy loading
+   - Jõudluse parandamine
+   - Testide lisamine
+   - PWA tugi
+
+3. Andmebaasi täiendused
+   - Migratsioonide süsteem
+   - Andmete varundamine
+   - Jõudluse optimeerimine
+   - Indeksite lisamine
+
+Soovituslik järgmine samm oleks tunniplaanide halduse arendamine, kuna see on süsteemi põhifunktsioon ja nüüd on olemas vajalik helinate tugi ning kasutajakogemuse põhikomponendid.

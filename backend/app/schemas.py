@@ -90,6 +90,9 @@ class SoundBase(BaseModel):
 class SoundCreate(SoundBase):
     pass
 
+class SoundUpdate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
 class Sound(SoundBase):
     id: int
 
@@ -110,10 +113,18 @@ class Holiday(HolidayBase):
     class Config:
         from_attributes = True
 
-# Token schema
+# Auth schemas
 class Token(BaseModel):
-    access_token: str
-    token_type: str
+    token: str
+    refreshToken: Optional[str] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class RefreshToken(BaseModel):
+    refreshToken: str
+
+class LoginResponse(BaseModel):
+    token: str
+    refreshToken: Optional[str] = None
+    user: User
