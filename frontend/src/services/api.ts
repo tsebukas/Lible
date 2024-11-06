@@ -36,7 +36,26 @@ export interface AuthResponse {
   };
 }
 
-// Tüübid
+// Mallide loomise/muutmise tüübid
+export interface CreateTemplateItemInput {
+  event_name: string;
+  offset_minutes: number;
+  sound_id: number;
+}
+
+export interface CreateTemplateInput {
+  name: string;
+  description: string | null;
+  items: CreateTemplateItemInput[];
+}
+
+export interface UpdateTemplateInput {
+  name?: string;
+  description?: string | null;
+  items?: CreateTemplateItemInput[];
+}
+
+// Põhitüübid
 export interface Sound {
   id: number;
   name: string;
@@ -113,7 +132,7 @@ export const templates = {
     return response.json();
   },
 
-  create: async (data: Omit<EventTemplate, 'id'>): Promise<EventTemplate> => {
+  create: async (data: CreateTemplateInput): Promise<EventTemplate> => {
     const response = await fetch(`${API_URL}/templates`, {
       method: 'POST',
       headers: {
@@ -126,7 +145,7 @@ export const templates = {
     return response.json();
   },
 
-  update: async (id: number, data: Partial<Omit<EventTemplate, 'id'>>): Promise<EventTemplate> => {
+  update: async (id: number, data: UpdateTemplateInput): Promise<EventTemplate> => {
     const response = await fetch(`${API_URL}/templates/${id}`, {
       method: 'PUT',
       headers: {

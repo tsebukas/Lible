@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, F
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from pydantic import BaseModel
 from . import models, schemas, security
@@ -303,7 +303,26 @@ def get_templates(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    return db.query(models.EventTemplate).all()
+    return db.query(models.EventTemplate).options(
+        joinedload(models.EventTemplate.items)
+    ).all()
+
+@app.get("/api/templates/{template_id}", response_model=schemas.EventTemplate)
+def get_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    template = db.query(models.EventTemplate).options(
+        joinedload(models.EventTemplate.items)
+    ).filter(
+        models.EventTemplate.id == template_id
+    ).first()
+    
+    if template is None:
+        raise HTTPException(status_code=404, detail="Mall ei leitud")
+    
+    return template
 
 @app.post("/api/templates", response_model=schemas.EventTemplate)
 def create_template(
@@ -327,7 +346,72 @@ def create_template(
         db.add(db_item)
     
     db.commit()
-    return db_template
+    
+    # Laeme malli uuesti koos sündmustega
+    return db.query(models.EventTemplate).options(
+        joinedload(models.EventTemplate.items)
+    ).filter(
+        models.EventTemplate.id == db_template.id
+    ).first()
+
+@app.put("/api/templates/{template_id}", response_model=schemas.EventTemplate)
+def update_template(
+    template_id: int,
+    template: schemas.EventTemplateCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    # Kontrolli, kas mall eksisteerib
+    db_template = db.query(models.EventTemplate).filter(
+        models.EventTemplate.id == template_id
+    ).first()
+    if db_template is None:
+        raise HTTPException(status_code=404, detail="Mall ei leitud")
+    
+    # Uuenda malli põhiandmed
+    db_template.name = template.name
+    db_template.description = template.description
+    
+    # Kustuta olemasolevad sündmused
+    db.query(models.EventTemplateItem).filter(
+        models.EventTemplateItem.template_id == template_id
+    ).delete()
+    
+    # Lisa uued sündmused
+    for item in template.items:
+        db_item = models.EventTemplateItem(
+            **item.model_dump(),
+            template_id=template_id
+        )
+        db.add(db_item)
+    
+    db.commit()
+    
+    # Laeme malli uuesti koos sündmustega
+    return db.query(models.EventTemplate).options(
+        joinedload(models.EventTemplate.items)
+    ).filter(
+        models.EventTemplate.id == template_id
+    ).first()
+
+@app.delete("/api/templates/{template_id}")
+def delete_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    # Kontrolli, kas mall eksisteerib
+    template = db.query(models.EventTemplate).filter(
+        models.EventTemplate.id == template_id
+    ).first()
+    if template is None:
+        raise HTTPException(status_code=404, detail="Mall ei leitud")
+    
+    # Kustuta mall (seotud sündmused kustutatakse automaatselt tänu cascade seadistusele)
+    db.delete(template)
+    db.commit()
+    
+    return {"message": "Mall kustutatud"}
 
 # Pühad
 @app.get("/api/holidays", response_model=List[schemas.Holiday])

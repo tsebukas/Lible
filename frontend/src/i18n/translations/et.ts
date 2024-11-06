@@ -36,6 +36,7 @@ export const et = {
   nav: {
     calendar: 'Kalender',
     timetables: 'Tunniplaanid',
+    templates: 'Mallid',
     sounds: 'Helinad'
   },
   auth: {
@@ -66,6 +67,38 @@ export const et = {
     updateSuccess: 'Tunniplaan on edukalt uuendatud',
     deleteSuccess: 'Tunniplaan on edukalt kustutatud',
     deleteConfirm: 'Kas oled kindel, et soovid selle tunniplaani kustutada?'
+  },
+  template: {
+    title: 'Mallid',
+    new: 'Uus mall',
+    edit: 'Muuda malli',
+    name: 'Malli nimi',
+    description: 'Kirjeldus',
+    noTemplates: 'Ühtegi malli pole lisatud',
+    eventCount: '{{count}} sündmust',
+    creating: 'Malli loomine...',
+    saving: 'Malli salvestamine...',
+    deleting: 'Malli kustutamine...',
+    createSuccess: 'Mall on edukalt loodud',
+    updateSuccess: 'Mall on edukalt uuendatud',
+    deleteSuccess: 'Mall on edukalt kustutatud',
+    delete: 'Kustuta mall',
+    deleteConfirm: 'Kas oled kindel, et soovid selle malli kustutada?',
+    items: {
+      title: 'Sündmused',
+      new: 'Lisa sündmus',
+      edit: 'Muuda sündmust',
+      delete: 'Kustuta sündmus',
+      name: 'Sündmuse nimi',
+      offset: 'Ajaline nihe',
+      sound: 'Helin',
+      noItems: 'Ühtegi sündmust pole lisatud',
+      deleteConfirm: 'Kas oled kindel, et soovid selle sündmuse kustutada?',
+      offsetHelp: 'Minutid põhisündmusest (nt. -5 = 5 minutit enne, +10 = 10 minutit pärast)',
+      createSuccess: 'Sündmus on edukalt lisatud',
+      updateSuccess: 'Sündmus on edukalt uuendatud',
+      deleteSuccess: 'Sündmus on edukalt kustutatud'
+    }
   },
   event: {
     new: 'Uus sündmus',

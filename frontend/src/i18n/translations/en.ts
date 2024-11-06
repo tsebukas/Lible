@@ -36,6 +36,7 @@ export const en = {
   nav: {
     calendar: 'Calendar',
     timetables: 'Timetables',
+    templates: 'Templates',
     sounds: 'Sounds'
   },
   auth: {
@@ -66,6 +67,38 @@ export const en = {
     updateSuccess: 'Timetable successfully updated',
     deleteSuccess: 'Timetable successfully deleted',
     deleteConfirm: 'Are you sure you want to delete this timetable?'
+  },
+  template: {
+    title: 'Templates',
+    new: 'New Template',
+    edit: 'Edit Template',
+    name: 'Template Name',
+    description: 'Description',
+    noTemplates: 'No templates added',
+    eventCount: '{{count}} events',
+    creating: 'Creating template...',
+    saving: 'Saving template...',
+    deleting: 'Deleting template...',
+    createSuccess: 'Template successfully created',
+    updateSuccess: 'Template successfully updated',
+    deleteSuccess: 'Template successfully deleted',
+    delete: 'Delete template',
+    deleteConfirm: 'Are you sure you want to delete this template?',
+    items: {
+      title: 'Events',
+      new: 'Add Event',
+      edit: 'Edit Event',
+      delete: 'Delete Event',
+      name: 'Event Name',
+      offset: 'Time Offset',
+      sound: 'Sound',
+      noItems: 'No events added',
+      deleteConfirm: 'Are you sure you want to delete this event?',
+      offsetHelp: 'Minutes from base event (e.g., -5 = 5 minutes before, +10 = 10 minutes after)',
+      createSuccess: 'Event successfully added',
+      updateSuccess: 'Event successfully updated',
+      deleteSuccess: 'Event successfully deleted'
+    }
   },
   event: {
     new: 'New Event',

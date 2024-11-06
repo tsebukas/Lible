@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Clock, Bell, Settings, LogOut, Globe, Menu, X } from 'lucide-react';
+import { Calendar, Clock, Bell, Settings, LogOut, Globe, Menu, X, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
@@ -19,6 +19,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigation = [
     { name: 'nav.calendar', href: '/', icon: Calendar },
     { name: 'nav.timetables', href: '/timetables', icon: Clock },
+    { name: 'nav.templates', href: '/templates', icon: FileText },
     { name: 'nav.sounds', href: '/sounds', icon: Bell },
   ];
 
@@ -85,7 +86,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         }`}
                       aria-current={location.pathname === item.href ? 'page' : undefined}
                     >
-                      <Icon className="h-5 w-5 mr-1.5" aria-hidden="true" />
+                      <Icon className="h-5 w-5 mr-1.5" />
                       <span>{t(item.name)}</span>
                     </Link>
                   );
@@ -153,7 +154,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   aria-current={location.pathname === item.href ? 'page' : undefined}
                 >
                   <div className="flex items-center">
-                    <Icon className="h-5 w-5 mr-2" aria-hidden="true" />
+                    <Icon className="h-5 w-5 mr-2" />
                     <span>{t(item.name)}</span>
                   </div>
                 </Link>
