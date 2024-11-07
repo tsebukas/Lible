@@ -9,21 +9,17 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
     is_local_auth = Column(Boolean, default=True)
-    language = Column(String, default="et")
-
-    timetables = relationship("Timetable", back_populates="user", cascade="all, delete-orphan")
+    language = Column(String)
 
 class Timetable(Base):
     __tablename__ = "timetables"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
+    name = Column(String, unique=True, index=True)
     valid_from = Column(Date)
     valid_until = Column(Date, nullable=True)
     weekdays = Column(Integer)  # Bitmask: 1=E, 2=T, 4=K, 8=N, 16=R, 32=L, 64=P
-    user_id = Column(Integer, ForeignKey("users.id"))
 
-    user = relationship("User", back_populates="timetables")
     events = relationship("TimetableEvent", back_populates="timetable", cascade="all, delete-orphan")
 
 class TimetableEvent(Base):
@@ -65,13 +61,13 @@ class Sound(Base):
     __tablename__ = "sounds"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
+    name = Column(String, unique=True, index=True)
     filename = Column(String)
 
 class Holiday(Base):
     __tablename__ = "holidays"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)  # Lisatud name väli
+    name = Column(String)
     valid_from = Column(Date)
     valid_until = Column(Date)

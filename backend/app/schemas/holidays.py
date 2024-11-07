@@ -2,14 +2,14 @@ from datetime import date
 from pydantic import BaseModel
 
 class HolidayBase(BaseModel):
-    name: str  # Lisatud name väli
+    name: str
     valid_from: date
     valid_until: date
 
 class HolidayCreate(HolidayBase):
     pass
 
-class HolidayUpdate(HolidayBase):  # Lisatud update skeem
+class HolidayUpdate(HolidayBase):
     pass
 
 class Holiday(HolidayBase):

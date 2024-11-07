@@ -19,7 +19,7 @@ def get_timetables(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return db.query(Timetable).filter(Timetable.user_id == current_user.id).all()
+    return db.query(Timetable).all()
 
 @router.post("", response_model=TimetableSchema)
 def create_timetable(
@@ -51,7 +51,6 @@ def get_timetable(
 ):
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -66,7 +65,6 @@ def update_timetable(
 ):
     db_timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if db_timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -97,7 +95,6 @@ def delete_timetable(
 ):
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -115,7 +112,6 @@ def get_timetable_events(
 ):
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -130,7 +126,6 @@ def create_timetable_event(
 ):
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -149,10 +144,8 @@ def update_timetable_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Kontrolli, kas tunniplaan kuulub kasutajale
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")
@@ -179,10 +172,8 @@ def delete_timetable_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Kontrolli, kas tunniplaan kuulub kasutajale
     timetable = db.query(Timetable).filter(
         Timetable.id == timetable_id,
-        Timetable.user_id == current_user.id
     ).first()
     if timetable is None:
         raise HTTPException(status_code=404, detail="Tunniplaan ei leitud")

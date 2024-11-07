@@ -1,9 +1,9 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class EventTemplateItemBase(BaseModel):
     event_name: str
-    offset_minutes: int
+    offset_minutes: int = Field(..., ge=-120, le=120)
     sound_id: int
 
 class EventTemplateItemCreate(EventTemplateItemBase):

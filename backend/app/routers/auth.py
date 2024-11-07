@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from ..database import get_db
 from ..models import User
-from .. import schemas
+from ..schemas.auth import LoginResponse, Token, RefreshToken
+from ..schemas.user import User as UserSchema
 from ..security import authenticate_user, create_access_token, get_current_user
 from ..security import ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -17,7 +18,7 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
-@router.post("/login", response_model=schemas.LoginResponse)
+@router.post("/login", response_model=LoginResponse)
 async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
@@ -43,9 +44,9 @@ async def login(
 async def logout(current_user: User = Depends(get_current_user)):
     return {"message": "Välja logitud"}
 
-@router.post("/refresh", response_model=schemas.Token)
+@router.post("/refresh", response_model=Token)
 async def refresh_token(
-    refresh_token: schemas.RefreshToken,
+    refresh_token: RefreshToken,
     db: Session = Depends(get_db)
 ):
     # TODO: Implement refresh token logic
@@ -58,6 +59,6 @@ async def refresh_token(
 async def check_auth(current_user: User = Depends(get_current_user)):
     return {"message": "Autenditud"}
 
-@router.get("/me", response_model=schemas.User)
+@router.get("/me", response_model=UserSchema)
 async def get_current_user(current_user: User = Depends(get_current_user)):
     return current_user
