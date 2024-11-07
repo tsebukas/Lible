@@ -88,7 +88,7 @@ export const et = {
   },
   template: {
     title: 'Mallid',
-    new: 'Uus mall',
+    new: 'Lisa mall',
     edit: 'Muuda malli',
     name: 'Malli nimi',
     description: 'Kirjeldus',

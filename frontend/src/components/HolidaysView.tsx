@@ -95,7 +95,7 @@ const HolidaysView = () => {
     }
 
     if (formState.valid_from && formState.valid_until && 
-        new Date(formState.valid_from) >= new Date(formState.valid_until)) {
+        new Date(formState.valid_from) > new Date(formState.valid_until)) {
       newErrors.valid_until = t('validation.dateRange');
     }
 

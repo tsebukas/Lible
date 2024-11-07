@@ -88,7 +88,7 @@ export const en = {
   },
   template: {
     title: 'Templates',
-    new: 'New Template',
+    new: 'Add Template',
     edit: 'Edit Template',
     name: 'Template Name',
     description: 'Description',
