@@ -72,19 +72,40 @@ export const en = {
     deleteConfirm: 'Are you sure you want to delete this holiday?'
   },
   timetable: {
-    new: 'New Timetable',
+    title: 'Timetables',
+    new: 'Add Timetable',
     edit: 'Edit Timetable',
     name: 'Timetable Name',
     validFrom: 'Valid From',
     validUntil: 'Valid Until',
+    validPeriod: 'Valid Period',
     weekdays: 'Weekdays',
+    noTimetables: 'No timetables added',
     saving: 'Saving timetable...',
     validating: 'Validating data...',
     processing: 'Processing data...',
+    deleting: 'Deleting timetable...',
     createSuccess: 'Timetable successfully created',
     updateSuccess: 'Timetable successfully updated',
     deleteSuccess: 'Timetable successfully deleted',
-    deleteConfirm: 'Are you sure you want to delete this timetable?'
+    delete: 'Delete timetable',
+    deleteConfirm: 'Are you sure you want to delete this timetable?',
+    events: {
+      title: 'Timetable Events',
+      new: 'Add Event',
+      edit: 'Edit Event',
+      name: 'Event Name',
+      time: 'Time',
+      sound: 'Sound',
+      template: 'Template',
+      baseEventTime: 'Base Event Time',
+      isBaseEvent: 'Base Event',
+      baseEvent: 'Base',
+      noEvents: 'No events added',
+      createSuccess: 'Event successfully added',
+      updateSuccess: 'Event successfully updated',
+      deleteSuccess: 'Event successfully deleted'
+    }
   },
   template: {
     title: 'Templates',

@@ -6,8 +6,6 @@ import Layout from './components/Layout';
 import LoginForm from './components/LoginForm';
 import CalendarView from './components/CalendarView';
 import TimetablesView from './components/TimetablesView';
-import TimetableDetailView from './components/TimetableDetailView';
-import TimetableForm from './components/TimetableForm';
 import SoundsView from './components/SoundsView';
 import TemplatesView from './components/TemplatesView';
 import HolidaysView from './components/HolidaysView';
@@ -65,26 +63,6 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <TimetablesView />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/timetables/new"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <TimetableForm />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/timetables/:id"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <TimetableDetailView />
             </Layout>
           </ProtectedRoute>
         }

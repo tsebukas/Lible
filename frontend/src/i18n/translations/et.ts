@@ -72,19 +72,40 @@ export const et = {
     deleteConfirm: 'Kas oled kindel, et soovid selle püha või vaheaja kustutada?'
   },
   timetable: {
-    new: 'Uus tunniplaan',
+    title: 'Tunniplaanid',
+    new: 'Lisa tunniplaan',
     edit: 'Muuda tunniplaani',
     name: 'Tunniplaani nimi',
     validFrom: 'Kehtib alates',
     validUntil: 'Kehtib kuni',
+    validPeriod: 'Kehtivusaeg',
     weekdays: 'Nädalapäevad',
+    noTimetables: 'Ühtegi tunniplaani pole lisatud',
     saving: 'Tunniplaani salvestamine...',
     validating: 'Andmete valideerimine...',
     processing: 'Andmete töötlemine...',
+    deleting: 'Tunniplaani kustutamine...',
     createSuccess: 'Tunniplaan on edukalt loodud',
     updateSuccess: 'Tunniplaan on edukalt uuendatud',
     deleteSuccess: 'Tunniplaan on edukalt kustutatud',
-    deleteConfirm: 'Kas oled kindel, et soovid selle tunniplaani kustutada?'
+    delete: 'Kustuta tunniplaan',
+    deleteConfirm: 'Kas oled kindel, et soovid selle tunniplaani kustutada?',
+    events: {
+      title: 'Tunniplaani sündmused',
+      new: 'Lisa sündmus',
+      edit: 'Muuda sündmust',
+      name: 'Sündmuse nimi',
+      time: 'Kellaaeg',
+      sound: 'Helin',
+      template: 'Mall',
+      baseEventTime: 'Põhisündmuse aeg',
+      isBaseEvent: 'Põhisündmus',
+      baseEvent: 'Põhi',
+      noEvents: 'Ühtegi sündmust pole lisatud',
+      createSuccess: 'Sündmus on edukalt lisatud',
+      updateSuccess: 'Sündmus on edukalt uuendatud',
+      deleteSuccess: 'Sündmus on edukalt kustutatud'
+    }
   },
   template: {
     title: 'Mallid',
