@@ -55,3 +55,32 @@ export interface Holiday {
   valid_from: string;
   valid_until: string;
 }
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface CreateTemplateItemInput {
+  event_name: string;
+  offset_minutes: number;
+  sound_id: number;
+}
+
+export interface CreateTemplateInput {
+  name: string;
+  description: string | null;
+  items: CreateTemplateItemInput[];
+}
+
+export interface UpdateTemplateInput {
+  name?: string;
+  description?: string | null;
+  items?: CreateTemplateItemInput[];
+}
+
+export interface CreateHolidayInput {
+  name: string;
+  valid_from: string;
+  valid_until: string;
+}

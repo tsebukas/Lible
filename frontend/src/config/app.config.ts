@@ -143,7 +143,7 @@ export const appConfig: AppConfig = {
       warning: 4000,
       info: 3000,
     },
-    maxToasts: 3,
+    maxToasts: 1,
     position: {
       vertical: 'top',
       horizontal: 'right',
