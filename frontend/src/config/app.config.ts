@@ -138,7 +138,7 @@ export const appConfig: AppConfig = {
   },
   toast: {
     duration: {
-      success: 3000,
+      success: 1,
       error: 5000,
       warning: 4000,
       info: 3000,

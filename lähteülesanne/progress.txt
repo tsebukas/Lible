@@ -29,6 +29,16 @@ TEHTUD:
    - API interceptorid
    - Turvaline väljalogimine
 
+6. Mallide haldus
+   - Malli loomine
+   - Malli sündmuste ajastamine
+   - Mallide nimekiri ja muutmine
+
+7. Pühade/vaheaegade haldus
+   - Pühade lisamine
+   - Pühade nimekiri ja muutmine
+
+
 JÄRGMISED SAMMUD (prioriteedi järjekorras):
 
 1. Tunniplaanide haldus
@@ -36,16 +46,6 @@ JÄRGMISED SAMMUD (prioriteedi järjekorras):
    - Tunniplaani sündmuste lisamine
    - Mallide kasutamine sündmuste lisamisel
    - Tunniplaanide nimekiri ja detailvaade
-
-2. Mallide haldus
-   - Malli loomine
-   - Malli sündmuste ajastamine
-   - Mallide nimekiri ja muutmine
-
-3. Pühade/vaheaegade haldus
-   - Pühade lisamine
-   - Pühade nimekiri ja muutmine
-   - Pühade arvestamine tunniplaanides
 
 4. Kellade automaatne helistamine
    - Taustateenus kellade helistamiseks

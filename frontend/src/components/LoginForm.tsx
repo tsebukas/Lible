@@ -4,7 +4,7 @@ import { User, Lock, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
-import Logo from './Logo';
+import Logo from './ui/Logo';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Card from './ui/Card';

@@ -5,11 +5,11 @@ import { useToast } from '../contexts/ToastContext';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import Dialog from './ui/Dialog';
-import Input from './ui/Input';
 import Alert from './ui/Alert';
 import LoadingSpinner from './ui/LoadingSpinner';
 import { appConfig } from '../config/app.config';
 import { holidays as holidaysApi, type Holiday, type CreateHolidayInput } from '../services/api';
+import CreateEditDialog from './ui/CreateEditDialog';
 
 interface FormState {
   name: string;
@@ -205,6 +205,32 @@ const HolidaysView = () => {
     }
   };
 
+  const dialogFields = [
+    {
+      label: t('holiday.name'),
+      value: formState.name,
+      onChange: (e) => setFormState(prev => ({ ...prev, name: e.target.value })),
+      required: true,
+      fullWidth: true
+    },
+    {
+      label: t('holiday.validFrom'),
+      value: formState.valid_from,
+      onChange: (e) => setFormState(prev => ({ ...prev, valid_from: e.target.value })),
+      required: true,
+      type: 'date',
+      fullWidth: true
+    },
+    {
+      label: t('holiday.validUntil'),
+      value: formState.valid_until,
+      onChange: (e) => setFormState(prev => ({ ...prev, valid_until: e.target.value })),
+      required: true,
+      type: 'date',
+      fullWidth: true
+    }
+  ];
+
   if (isLoading) {
     return <LoadingSpinner.Section />;
   }
@@ -283,54 +309,15 @@ const HolidaysView = () => {
       </div>
 
       {/* Create/Edit dialog */}
-      <Dialog
+      <CreateEditDialog
         isOpen={createDialog || !!editDialog}
         onClose={() => (createDialog ? setCreateDialog(false) : setEditDialog(null))}
         title={createDialog ? t('holiday.new') : t('holiday.edit')}
-        footer={
-          <Dialog.Footer.Buttons
-            onCancel={() => (createDialog ? setCreateDialog(false) : setEditDialog(null))}
-            onConfirm={createDialog ? handleCreate : handleEdit}
-            isLoading={formState.isLoading}
-          />
-        }
-      >
-        <div className="space-y-4">
-          {formState.error && (
-            <Alert.Error>
-              {formState.error}
-            </Alert.Error>
-          )}
-
-          <Input
-            label={t('holiday.name')}
-            value={formState.name}
-            onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-            required
-            fullWidth
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              type="date"
-              label={t('holiday.validFrom')}
-              value={formState.valid_from}
-              onChange={(e) => setFormState(prev => ({ ...prev, valid_from: e.target.value }))}
-              required
-              fullWidth
-            />
-
-            <Input
-              type="date"
-              label={t('holiday.validUntil')}
-              value={formState.valid_until}
-              onChange={(e) => setFormState(prev => ({ ...prev, valid_until: e.target.value }))}
-              required
-              fullWidth
-            />
-          </div>
-        </div>
-      </Dialog>
+        onConfirm={createDialog ? handleCreate : handleEdit}
+        isLoading={formState.isLoading}
+        error={formState.error}
+        fields={dialogFields}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog

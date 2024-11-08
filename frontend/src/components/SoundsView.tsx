@@ -11,6 +11,8 @@ import LoadingSpinner from './ui/LoadingSpinner';
 import AudioPlayButton from './ui/AudioPlayButton';
 import { appConfig } from '../config/app.config';
 import { sounds as soundsApi, type Sound } from '../services/api';
+import CreateEditDialog from './ui/CreateEditDialog';
+import { getAuthHeaders } from '../utils/auth';
 
 const SoundsView = () => {
   const { t } = useLanguage();
@@ -182,11 +184,15 @@ const SoundsView = () => {
     }
   };
 
-  // Hangi JWT token
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem(appConfig.auth.tokenKey);
-    return token ? { 'Authorization': `Bearer ${token}` } : undefined;
-  };
+  const editDialogFields = [
+    {
+      label: t('sound.name'),
+      value: editState.name,
+      onChange: (e) => setEditState(prev => ({ ...prev, name: e.target.value })),
+      required: true,
+      fullWidth: true
+    }
+  ];
 
   if (isLoading) {
     return <LoadingSpinner.Section />;
@@ -316,34 +322,15 @@ const SoundsView = () => {
       </Dialog>
 
       {/* Edit dialog */}
-      <Dialog
+      <CreateEditDialog
         isOpen={!!editDialog}
         onClose={() => setEditDialog(null)}
         title={t('sound.edit')}
-        footer={
-          <Dialog.Footer.Buttons
-            onCancel={() => setEditDialog(null)}
-            onConfirm={handleEdit}
-            isLoading={editState.isLoading}
-          />
-        }
-      >
-        <div className="space-y-4">
-          {editState.error && (
-            <Alert.Error>
-              {editState.error}
-            </Alert.Error>
-          )}
-
-          <Input
-            label={t('sound.name')}
-            value={editState.name}
-            onChange={(e) => setEditState(prev => ({ ...prev, name: e.target.value }))}
-            required
-            fullWidth
-          />
-        </div>
-      </Dialog>
+        onConfirm={handleEdit}
+        isLoading={editState.isLoading}
+        error={editState.error}
+        fields={editDialogFields}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog

@@ -4,7 +4,7 @@ import { Calendar, Clock, Bell, Settings, LogOut, Globe, Menu, X, FileText, Part
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
-import Logo from './Logo';
+import Logo from './ui/Logo';
 import Button from './ui/Button';
 import { appConfig } from '../config/app.config';
 

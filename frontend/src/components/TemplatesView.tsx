@@ -5,12 +5,12 @@ import { useToast } from '../contexts/ToastContext';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import Dialog from './ui/Dialog';
-import Input from './ui/Input';
 import Alert from './ui/Alert';
 import LoadingSpinner from './ui/LoadingSpinner';
 import TemplateItemsDialog from './TemplateItemsDialog';
 import { appConfig } from '../config/app.config';
 import { templates as templatesApi, sounds as soundsApi, type EventTemplate, type CreateTemplateInput, type CreateTemplateItemInput, type Sound } from '../services/api';
+import CreateEditDialog from './ui/CreateEditDialog';
 
 interface FormState {
   name: string;
@@ -245,6 +245,22 @@ const TemplatesView = () => {
     setItemsDialog(null);
   };
 
+  const dialogFields = [
+    {
+      label: t('template.name'),
+      value: formState.name,
+      onChange: (e) => setFormState(prev => ({ ...prev, name: e.target.value })),
+      required: true,
+      fullWidth: true
+    },
+    {
+      label: t('template.description'),
+      value: formState.description,
+      onChange: (e) => setFormState(prev => ({ ...prev, description: e.target.value })),
+      fullWidth: true
+    }
+  ];
+
   if (isLoading) {
     return <LoadingSpinner.Section />;
   }
@@ -335,41 +351,15 @@ const TemplatesView = () => {
       </div>
 
       {/* Create/Edit dialog */}
-      <Dialog
+      <CreateEditDialog
         isOpen={createDialog || !!editDialog}
         onClose={() => (createDialog ? setCreateDialog(false) : setEditDialog(null))}
         title={createDialog ? t('template.new') : t('template.edit')}
-        footer={
-          <Dialog.Footer.Buttons
-            onCancel={() => (createDialog ? setCreateDialog(false) : setEditDialog(null))}
-            onConfirm={createDialog ? handleCreate : handleEdit}
-            isLoading={formState.isLoading}
-          />
-        }
-      >
-        <div className="space-y-4">
-          {formState.error && (
-            <Alert.Error>
-              {formState.error}
-            </Alert.Error>
-          )}
-
-          <Input
-            label={t('template.name')}
-            value={formState.name}
-            onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-            required
-            fullWidth
-          />
-
-          <Input
-            label={t('template.description')}
-            value={formState.description}
-            onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-            fullWidth
-          />
-        </div>
-      </Dialog>
+        onConfirm={createDialog ? handleCreate : handleEdit}
+        isLoading={formState.isLoading}
+        error={formState.error}
+        fields={dialogFields}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog
