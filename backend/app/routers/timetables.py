@@ -37,7 +37,7 @@ def create_timetable(
             detail="Sama nimega tunniplaan on juba olemas"
         )
 
-    db_timetable = Timetable(**timetable.model_dump(), user_id=current_user.id)
+    db_timetable = Timetable(**timetable.model_dump())
     db.add(db_timetable)
     db.commit()
     db.refresh(db_timetable)

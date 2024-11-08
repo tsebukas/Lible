@@ -16,7 +16,6 @@ export interface Timetable {
   valid_from: string;
   valid_until: string | null;
   weekdays: number;
-  user_id: number;
 }
 
 export interface TimetableEvent {
@@ -52,6 +51,7 @@ export interface Sound {
 
 export interface Holiday {
   id: number;
+  name: string;
   valid_from: string;
   valid_until: string;
 }
